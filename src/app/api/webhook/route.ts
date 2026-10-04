@@ -12,7 +12,10 @@ export async function OPTIONS() {
   });
 }
 
-// EMQX Cloud HTTP action → sensor_logs. Payload: { tma, moisture, risk_index }.
+const clamp100 = (v: number) => Math.min(100, Math.max(0, v));
+
+// EMQX Cloud HTTP action → sensor_logs. Payload: { tma, moisture, ultrasonic } (+ alias temperature).
+// tma = suhu MAX6675 (°C), moisture M (%), ultrasonic D (cm). risk_index dihitung server-side.
 export async function POST(request: Request) {
   // Set the same value as a custom header in the EMQX HTTP action.
   const secret = process.env.WEBHOOK_SECRET;
@@ -29,34 +32,45 @@ export async function POST(request: Request) {
     return Response.json({ success: false, error: "Invalid JSON body", received: text }, { status: 400 });
   }
 
-  // Dukung payload langsung { tma, moisture, risk_index } maupun jika dibungkus { payload: { ... } } atau { data: { ... } }
+  // Dukung payload langsung maupun jika dibungkus { payload: { ... } } atau { data: { ... } }
   const data =
     (body?.payload && typeof body.payload === "object" ? body.payload : null) ||
     (body?.data && typeof body.data === "object" ? body.data : null) ||
     (body ?? {});
 
-  const tma = Number(data?.tma);
   const moisture = Number(data?.moisture);
-  const risk_index = Number(data?.risk_index);
+  const tActual = Number(data?.temperature ?? data?.tma);
+  const distance = Number(data?.ultrasonic ?? data?.distance ?? data?.d);
 
-  if (![tma, moisture, risk_index].every(Number.isFinite)) {
+  if (![moisture, tActual, distance].every(Number.isFinite)) {
     console.warn("webhook rejected, bad fields:", text);
     return Response.json(
-      { success: false, error: "tma, moisture and risk_index must be valid numbers", received: body },
+      { success: false, error: "moisture, temperature/tma and ultrasonic must be valid numbers", received: body },
       { status: 400 }
     );
   }
 
+  const S = clamp100(((60 - moisture) / (60 - 20)) * 100);
+  const T = clamp100(((tActual - 25) / (45 - 25)) * 100);
+  const W = clamp100(((distance - 10) / (100 - 10)) * 100);
+
+  // weight constant
+  const risk_index = Math.round(0.4 * S + 0.3 * T + 0.3 * W);
+
   try {
     // Created per request so a missing env var surfaces as a 500 instead of breaking the build.
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
-    const { error } = await supabase
-      .from("sensor_logs")
-      .insert({ tma, moisture, risk_index, created_at: new Date().toISOString() });
+    const { error } = await supabase.from("sensor_logs").insert({
+      tma: tActual,
+      moisture,
+      ultrasonic: distance,
+      risk_index,
+      created_at: new Date().toISOString(),
+    });
     if (error) throw error;
 
-    console.log("webhook saved:", text);
-    return Response.json({ success: true });
+    console.log("webhook saved:", { moisture, tActual, distance, S, T, W, risk_index });
+    return Response.json({ success: true, risk_index, S, T, W });
   } catch (err) {
     console.error("sensor_logs insert failed:", err);
     return Response.json({ success: false, error: (err as Error).message }, { status: 500 });

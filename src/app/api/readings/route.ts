@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
   let query = supabase
     .from("sensor_logs")
-    .select("created_at, tma, moisture, risk_index")
+    .select("created_at, tma, moisture, ultrasonic, risk_index")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (hours > 0) query = query.gte("created_at", new Date(Date.now() - hours * 3_600_000).toISOString());
