@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { monitoringRepository } from "@/features/monitoring/services/monitoringService";
-import type { MonitoringNode, MonitoringReading, RiskStatus } from "@/types/domain";
+import type { MonitoringNode, MonitoringReading, RiskStatus, SensorType } from "@/types/domain";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { usePolling } from "@/lib/usePolling";
 import { LoadingSkeleton, EmptyState, ErrorState } from "@/components/ui/States";
-import { formatRelativeTime } from "@/lib/constants";
+import { formatRelativeTime, SENSOR_META } from "@/lib/constants";
 import { Wifi, WifiOff, ArrowRight } from "lucide-react";
 
 type StatusFilter = "ALL" | RiskStatus;
@@ -46,6 +46,29 @@ export function MonitoringClient() {
   usePolling(() => fetchData(true));
 
   const getReading = (nodeId: string) => readings.find((r) => r.nodeId === nodeId);
+
+  // ponytail: tiap node hanya menampilkan sensornya sendiri.
+  const getSensorType = (node: MonitoringNode): SensorType => {
+    if (node.sensorType) return node.sensorType;
+    const n = node.name.toLowerCase();
+    if (n.includes("moist")) return "moisture";
+    if (n.includes("ultra")) return "ultrasonic";
+    if (n.includes("temp")) return "temperature";
+    return "risk";
+  };
+
+  const getSensorParam = (node: MonitoringNode, reading: MonitoringReading) => {
+    switch (getSensorType(node)) {
+      case "moisture":
+        return { label: SENSOR_META.moisture.short, value: reading.soilMoisture.value, unit: reading.soilMoisture.unit };
+      case "ultrasonic":
+        return { label: SENSOR_META.ultrasonic.short, value: reading.ultrasonic.value, unit: reading.ultrasonic.unit };
+      case "temperature":
+        return { label: SENSOR_META.temperature.short, value: reading.temperature.value, unit: reading.temperature.unit };
+      case "risk":
+        return null;
+    }
+  };
 
   const filteredNodes = nodes.filter((node) => {
     const reading = getReading(node.id);
@@ -212,18 +235,17 @@ export function MonitoringClient() {
                         {reading.riskIndex.value}
                       </span>
                     </div>
-                    <div className="node-card-param">
-                      <span className="node-card-param-label">TMA</span>
-                      <span className="node-card-param-value">
-                        {reading.waterLevel.value} {reading.waterLevel.unit}
-                      </span>
-                    </div>
-                    <div className="node-card-param">
-                      <span className="node-card-param-label">Kelembaban</span>
-                      <span className="node-card-param-value">
-                        {reading.soilMoisture.value} {reading.soilMoisture.unit}
-                      </span>
-                    </div>
+                    {(() => {
+                      const param = getSensorParam(node, reading);
+                      return param ? (
+                        <div className="node-card-param">
+                          <span className="node-card-param-label">{param.label}</span>
+                          <span className="node-card-param-value">
+                            {param.value} {param.unit}
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
                     <div className="node-card-param">
                       <span className="node-card-param-label">ID Node</span>
                       <span className="node-card-param-value" style={{ fontSize: "0.875rem", fontFamily: "var(--font-mono)" }}>

@@ -63,6 +63,7 @@ export function RiskSummaryCard({ reading }: RiskSummaryCardProps) {
         </div>
       )}
 
+      <div className="metric-visual">
       <div
         className="risk-scale-bar"
         role="progressbar"
@@ -75,6 +76,7 @@ export function RiskSummaryCard({ reading }: RiskSummaryCardProps) {
           className="risk-scale-fill"
           style={{ width: `${riskIndex.value}%`, background: fillColor }}
         />
+      </div>
       </div>
 
       <div className="last-update-inline">

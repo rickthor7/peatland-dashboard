@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, Wifi, WifiOff } from "lucide-react";
-import type { MonitoringNode, MonitoringReading } from "@/types/domain";
+import type { MonitoringNode, MonitoringReading, SensorType } from "@/types/domain";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { formatRelativeTime } from "@/lib/constants";
 
@@ -14,6 +14,29 @@ interface NodeRiskOverviewProps {
 export function NodeRiskOverview({ nodes, readings }: NodeRiskOverviewProps) {
   const getReading = (nodeId: string) =>
     readings.find((r) => r.nodeId === nodeId);
+
+  // ponytail: tiap baris hanya menampilkan sensor milik node tersebut.
+  const getSensorType = (node: MonitoringNode): SensorType => {
+    if (node.sensorType) return node.sensorType;
+    const n = node.name.toLowerCase();
+    if (n.includes("moist")) return "moisture";
+    if (n.includes("ultra")) return "ultrasonic";
+    if (n.includes("temp")) return "temperature";
+    return "risk";
+  };
+
+  const getSensorText = (node: MonitoringNode, reading: MonitoringReading): string => {
+    switch (getSensorType(node)) {
+      case "moisture":
+        return `${reading.soilMoisture.value} ${reading.soilMoisture.unit}`;
+      case "ultrasonic":
+        return `${reading.ultrasonic.value} ${reading.ultrasonic.unit}`;
+      case "temperature":
+        return `${reading.temperature.value} ${reading.temperature.unit}`;
+      case "risk":
+        return "—";
+    }
+  };
 
   // Sort: AWAS → SIAGA → AMAN → offline
   const sorted = [...nodes].sort((a, b) => {
@@ -57,8 +80,7 @@ export function NodeRiskOverview({ nodes, readings }: NodeRiskOverviewProps) {
               <th>Node / Blok</th>
               <th>Status</th>
               <th>Indeks</th>
-              <th>TMA</th>
-              <th>Kelembaban</th>
+              <th>Sensor</th>
               <th>Koneksi</th>
               <th>Update</th>
               <th aria-label="Aksi" />
@@ -96,10 +118,7 @@ export function NodeRiskOverview({ nodes, readings }: NodeRiskOverviewProps) {
                     ) : "—"}
                   </td>
                   <td style={{ fontFeatureSettings: "'tnum'" }}>
-                    {reading ? `${reading.waterLevel.value} ${reading.waterLevel.unit}` : "—"}
-                  </td>
-                  <td style={{ fontFeatureSettings: "'tnum'" }}>
-                    {reading ? `${reading.soilMoisture.value} ${reading.soilMoisture.unit}` : "—"}
+                    {reading ? `${getSensorText(node, reading)}` : "—"}
                   </td>
                   <td>
                     <span style={{

@@ -243,6 +243,146 @@ export function WaterLevelChart({ data, period, onPeriodChange, isLoading }: Cha
 }
 
 /* ══════════════════════════════════════════════════════════
+   ULTRASONIC CHART (jarak, cm)
+   ══════════════════════════════════════════════════════════ */
+
+export function UltrasonicChart({ data, period, onPeriodChange, isLoading }: ChartProps) {
+  return (
+    <div className="card chart-container" style={{ padding: 0 }}>
+      <div style={{ padding: "var(--space-5) var(--space-5) 0" }}>
+        <div className="chart-header">
+          <div>
+            <div className="chart-title">Jarak Ultrasonik</div>
+            <div className="chart-subtitle">Jarak sensor dalam cm</div>
+          </div>
+          <PeriodTabs period={period} onChange={onPeriodChange} />
+        </div>
+      </div>
+
+      <div style={{ padding: "0 var(--space-2) var(--space-4)" }}>
+        {isLoading ? (
+          <ChartSkeleton />
+        ) : data.length === 0 ? (
+          <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-tertiary)", fontSize: "0.8125rem" }}>
+            Belum ada data untuk periode ini
+          </div>
+        ) : (
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={data} margin={{ top: 16, right: 16, left: -4, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="ultraGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--chart-water)" stopOpacity={0.22} />
+                    <stop offset="85%" stopColor="var(--chart-water)" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize: 10, fill: "var(--chart-axis)", fontFamily: "var(--font-mono)" }}
+                  axisLine={false} tickLine={false} tickMargin={8}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "var(--chart-axis)", fontFamily: "var(--font-mono)" }}
+                  axisLine={false} tickLine={false} tickMargin={4}
+                  width={36}
+                  tickFormatter={(v) => `${v}`}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelStyle={labelStyle}
+                  formatter={(val: unknown) => [`${val ?? ""} cm`, "Ultrasonik"]}
+                  cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="ultrasonic"
+                  stroke="var(--chart-water)"
+                  strokeWidth={2}
+                  fill="url(#ultraGrad)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--bg-surface)", fill: "var(--chart-water)" }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   TEMPERATURE CHART (suhu, °C)
+   ══════════════════════════════════════════════════════════ */
+
+export function TemperatureChart({ data, period, onPeriodChange, isLoading }: ChartProps) {
+  return (
+    <div className="card chart-container" style={{ padding: 0 }}>
+      <div style={{ padding: "var(--space-5) var(--space-5) 0" }}>
+        <div className="chart-header">
+          <div>
+            <div className="chart-title">Suhu</div>
+            <div className="chart-subtitle">Suhu dalam derajat Celsius</div>
+          </div>
+          <PeriodTabs period={period} onChange={onPeriodChange} />
+        </div>
+      </div>
+
+      <div style={{ padding: "0 var(--space-2) var(--space-4)" }}>
+        {isLoading ? (
+          <ChartSkeleton />
+        ) : data.length === 0 ? (
+          <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-tertiary)", fontSize: "0.8125rem" }}>
+            Belum ada data untuk periode ini
+          </div>
+        ) : (
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={data} margin={{ top: 16, right: 16, left: -4, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--status-siaga)" stopOpacity={0.22} />
+                    <stop offset="85%" stopColor="var(--status-siaga)" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize: 10, fill: "var(--chart-axis)", fontFamily: "var(--font-mono)" }}
+                  axisLine={false} tickLine={false} tickMargin={8}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "var(--chart-axis)", fontFamily: "var(--font-mono)" }}
+                  axisLine={false} tickLine={false} tickMargin={4}
+                  width={36}
+                  tickFormatter={(v) => `${v}°`}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelStyle={labelStyle}
+                  formatter={(val: unknown) => [`${val ?? ""} °C`, "Suhu"]}
+                  cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="temperature"
+                  stroke="var(--status-siaga)"
+                  strokeWidth={2}
+                  fill="url(#tempGrad)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--bg-surface)", fill: "var(--status-siaga)" }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
    SOIL MOISTURE CHART
    ══════════════════════════════════════════════════════════ */
 

@@ -51,7 +51,8 @@ export function SoilMoistureCard({ reading }: SoilMoistureCardProps) {
 
       {/* Segmented moisture bar */}
       {pct !== null && (
-        <div style={{ display: "flex", gap: "3px", marginTop: "var(--space-3)", alignItems: "stretch", height: "6px" }}>
+        <div className="metric-visual">
+        <div style={{ display: "flex", gap: "3px", alignItems: "stretch", height: "6px", width: "100%" }}>
           {MOISTURE_ZONES.map((zone, i) => {
             const prevMax = i === 0 ? 0 : MOISTURE_ZONES[i - 1].max;
             const segPct = zone.max - prevMax;
@@ -79,15 +80,16 @@ export function SoilMoistureCard({ reading }: SoilMoistureCardProps) {
             );
           })}
         </div>
-      )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "var(--space-2)" }}>
-        {MOISTURE_ZONES.map((z) => (
-          <span key={z.label} style={{ fontSize: "0.5625rem", color: "var(--text-tertiary)", fontFamily: "var(--font-body)", letterSpacing: "0.04em" }}>
-            {z.label}
-          </span>
-        ))}
-      </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "var(--space-2)" }}>
+          {MOISTURE_ZONES.map((z) => (
+            <span key={z.label} style={{ fontSize: "0.5625rem", color: "var(--text-tertiary)", fontFamily: "var(--font-body)", letterSpacing: "0.04em" }}>
+              {z.label}
+            </span>
+          ))}
+        </div>
+        </div>
+      )}
 
       <div className="last-update-inline">{formatTimestamp(recordedAt)}</div>
     </div>

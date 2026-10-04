@@ -26,14 +26,15 @@ export interface MonitoringRepository {
 
 // ─── Supabase + Mock Implementation ───────────────────────────────────────────
 // REAL_NODE: ESP32 → EMQX → /api/webhook → sensor_logs → /api/readings → di sini
-// Node lain masih data dummy dari @/mocks/monitoring
+// Satu ESP32 mengirim semua sensor, jadi semua node membaca baris sensor_logs
+// yang sama dan masing-masing hanya menampilkan sensornya sendiri.
 
 // ponytail: semua node live membaca baris sensor_logs yang sama; tambah kolom node_id di sensor_logs saat ESP32 berikutnya terpasang.
 const REAL_NODE = "NODE-001";
-// NODE-004 "Result" menampilkan hasil (risk_index/IKG) dari sensor_logs yang sama.
-const LIVE_NODES = new Set([REAL_NODE, "NODE-004"]);
+// NODE-002 Ultrasonic, NODE-003 Temperature, NODE-004 Result (risk_index/IKG).
+const LIVE_NODES = new Set([REAL_NODE, "NODE-002", "NODE-003", "NODE-004"]);
 
-type SensorLog = { created_at: string; tma: number; moisture: number; risk_index: number };
+type SensorLog = { created_at: string; tma: number; moisture: number; ultrasonic: number; risk_index: number };
 
 const PERIOD_HOURS: Record<TimePeriod, number> = { "24h": 24, "7d": 168, "30d": 720 };
 
@@ -66,8 +67,10 @@ const toReading = (log: SensorLog, prev: SensorLog | undefined, nodeId: string):
   id: `${nodeId}-${log.created_at}`,
   nodeId,
   recordedAt: log.created_at,
-  waterLevel: { value: log.tma, unit: "cm" },
+  waterLevel: { value: log.ultrasonic, unit: "cm" },
   soilMoisture: { value: log.moisture, unit: "%" },
+  temperature: { value: log.tma, unit: "°C" },
+  ultrasonic: { value: log.ultrasonic, unit: "cm" },
   riskIndex: {
     value: log.risk_index,
     status: toStatus(log.risk_index),
@@ -168,8 +171,10 @@ class MonitoringService implements MonitoringRepository {
     }
     return (await fetchLogs({ hours: PERIOD_HOURS[period] })).toReversed().map((l) => ({
       timestamp: l.created_at,
-      waterLevel: l.tma,
+      waterLevel: l.ultrasonic,
       soilMoisture: l.moisture,
+      temperature: l.tma,
+      ultrasonic: l.ultrasonic,
       riskIndex: l.risk_index,
     }));
   }

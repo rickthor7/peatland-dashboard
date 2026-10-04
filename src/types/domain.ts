@@ -22,12 +22,16 @@ export interface SoilMoisture {
   unit: string;
 }
 
+export type SensorType = "moisture" | "ultrasonic" | "temperature" | "risk";
+
 export interface MonitoringReading {
   id: string;
   nodeId: string;
   recordedAt: string;
   waterLevel: WaterLevel;
   soilMoisture: SoilMoisture;
+  temperature: WaterLevel;
+  ultrasonic: WaterLevel;
   riskIndex: RiskIndex;
 }
 
@@ -35,6 +39,7 @@ export interface MonitoringNode {
   id: string;
   name: string;
   blockName?: string;
+  sensorType?: SensorType;
   location?: {
     latitude?: number;
     longitude?: number;
@@ -67,6 +72,8 @@ export interface TrendDataPoint {
   timestamp: string;
   waterLevel: number;
   soilMoisture: number;
+  temperature: number;
+  ultrasonic: number;
   riskIndex: number;
 }
 

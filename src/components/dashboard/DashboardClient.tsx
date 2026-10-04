@@ -7,8 +7,8 @@ import { SystemStatusBanner } from "./SystemStatusBanner";
 import { RiskSummaryCard } from "./RiskSummaryCard";
 import { WaterLevelCard } from "./WaterLevelCard";
 import { SoilMoistureCard } from "./SoilMoistureCard";
-import { NodeStatusCard } from "./NodeStatusCard";
-import { RiskTrendChart, WaterLevelChart, SoilMoistureChart } from "@/components/charts/Charts";
+import { TemperatureCard } from "./TemperatureCard";
+import { RiskTrendChart, WaterLevelChart, SoilMoistureChart, TemperatureChart } from "@/components/charts/Charts";
 import { NodeRiskOverview } from "./NodeRiskOverview";
 import { LoadingSkeleton, ErrorState } from "@/components/ui/States";
 import { usePolling } from "@/lib/usePolling";
@@ -22,13 +22,16 @@ export function DashboardClient() {
   const [trendPeriod, setTrendPeriod] = useState<TimePeriod>("24h");
   const [wlPeriod, setWlPeriod] = useState<TimePeriod>("24h");
   const [smPeriod, setSmPeriod] = useState<TimePeriod>("24h");
+  const [tpPeriod, setTpPeriod] = useState<TimePeriod>("24h");
   const [wlData, setWlData] = useState<TrendDataPoint[]>([]);
   const [smData, setSmData] = useState<TrendDataPoint[]>([]);
+  const [tpData, setTpData] = useState<TrendDataPoint[]>([]);
 
   const [loadingMain, setLoadingMain] = useState(true);
   const [loadingTrend, setLoadingTrend] = useState(true);
   const [loadingWl, setLoadingWl] = useState(false);
   const [loadingSm, setLoadingSm] = useState(false);
+  const [loadingTp, setLoadingTp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchMain = useCallback(async (silent = false) => {
@@ -81,19 +84,31 @@ export function DashboardClient() {
     }
   }, []);
 
+  const fetchTp = useCallback(async (period: TimePeriod, silent = false) => {
+    if (!silent) setLoadingTp(true);
+    try {
+      const data = await monitoringRepository.getGlobalTrendData(period);
+      setTpData(data);
+    } finally {
+      setLoadingTp(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMain();
     fetchTrend("24h");
     fetchWl("24h");
     fetchSm("24h");
-  }, [fetchMain, fetchTrend, fetchWl, fetchSm]);
+    fetchTp("24h");
+  }, [fetchMain, fetchTrend, fetchWl, fetchSm, fetchTp]);
 
   useEffect(() => { fetchTrend(trendPeriod); }, [trendPeriod, fetchTrend]);
   useEffect(() => { fetchWl(wlPeriod); }, [wlPeriod, fetchWl]);
   useEffect(() => { fetchSm(smPeriod); }, [smPeriod, fetchSm]);
+  useEffect(() => { fetchTp(tpPeriod); }, [tpPeriod, fetchTp]);
 
   usePolling(() =>
-    Promise.all([fetchMain(true), fetchTrend(trendPeriod, true), fetchWl(wlPeriod, true), fetchSm(smPeriod, true)])
+    Promise.all([fetchMain(true), fetchTrend(trendPeriod, true), fetchWl(wlPeriod, true), fetchSm(smPeriod, true), fetchTp(tpPeriod, true)])
   );
 
   if (error) {
@@ -115,8 +130,8 @@ export function DashboardClient() {
         ) : null}
       </div>
 
-      {/* Metric Cards — 4 kolom */}
-      <div className="dashboard-grid grid-4" style={{ marginBottom: "var(--space-5)" }}>
+      {/* Metric Cards — 2x2 */}
+      <div className="dashboard-grid grid-2 metric-cards" style={{ marginBottom: "var(--space-5)" }}>
         {loadingMain ? (
           <>
             {[0,1,2,3].map((i) => (
@@ -137,25 +152,23 @@ export function DashboardClient() {
               <SoilMoistureCard reading={latestReading} />
             </div>
             <div data-aos="fade-up" data-aos-delay="180" data-aos-duration="400">
-              <NodeStatusCard nodes={nodes} />
+              <TemperatureCard reading={latestReading} />
             </div>
           </>
         )}
       </div>
 
-      {/* Risk Index Trend */}
-      <div data-aos="fade-up" data-aos-duration="450" style={{ marginBottom: "var(--space-5)" }}>
-        <RiskTrendChart
-          data={trendData}
-          period={trendPeriod}
-          onPeriodChange={setTrendPeriod}
-          isLoading={loadingTrend}
-        />
-      </div>
-
-      {/* Hydrology Charts — 2 kolom */}
+      {/* Charts — 2x2 */}
       <div className="dashboard-grid grid-2" style={{ marginBottom: "var(--space-5)" }}>
-        <div data-aos="fade-right" data-aos-duration="450">
+        <div data-aos="fade-up" data-aos-delay="0" data-aos-duration="450">
+          <RiskTrendChart
+            data={trendData}
+            period={trendPeriod}
+            onPeriodChange={setTrendPeriod}
+            isLoading={loadingTrend}
+          />
+        </div>
+        <div data-aos="fade-up" data-aos-delay="80" data-aos-duration="450">
           <WaterLevelChart
             data={wlData}
             period={wlPeriod}
@@ -163,12 +176,20 @@ export function DashboardClient() {
             isLoading={loadingWl}
           />
         </div>
-        <div data-aos="fade-left" data-aos-duration="450">
+        <div data-aos="fade-up" data-aos-delay="160" data-aos-duration="450">
           <SoilMoistureChart
             data={smData}
             period={smPeriod}
             onPeriodChange={setSmPeriod}
             isLoading={loadingSm}
+          />
+        </div>
+        <div data-aos="fade-up" data-aos-delay="240" data-aos-duration="450">
+          <TemperatureChart
+            data={tpData}
+            period={tpPeriod}
+            onPeriodChange={setTpPeriod}
+            isLoading={loadingTp}
           />
         </div>
       </div>

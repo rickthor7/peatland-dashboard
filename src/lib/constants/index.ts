@@ -41,6 +41,13 @@ export const CONNECTION_CONFIG = {
   UNKNOWN: { label: "Tidak Diketahui", color: "var(--text-tertiary)" },
 } as const;
 
+export const SENSOR_META = {
+  moisture: { label: "Kelembaban Tanah", short: "Kelembaban", unit: "%" },
+  ultrasonic: { label: "Jarak Ultrasonik", short: "Ultrasonik", unit: "cm" },
+  temperature: { label: "Suhu", short: "Suhu", unit: "°C" },
+  risk: { label: "Indeks Kerawanan", short: "Indeks", unit: "/100" },
+} as const;
+
 export function formatTimestamp(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleTimeString("id-ID", {

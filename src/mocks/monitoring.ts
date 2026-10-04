@@ -16,6 +16,7 @@ export const mockNodes: MonitoringNode[] = [
     id: "NODE-001",
     name: "SoilMoisture",
     blockName: "Blok A",
+    sensorType: "moisture",
     location: { latitude: -2.1234, longitude: 113.4567 },
     lastSeenAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
     connectionStatus: "ONLINE",
@@ -24,6 +25,7 @@ export const mockNodes: MonitoringNode[] = [
     id: "NODE-002",
     name: "Ultrasonic",
     blockName: "Blok A",
+    sensorType: "ultrasonic",
     location: { latitude: -2.1289, longitude: 113.4612 },
     lastSeenAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     connectionStatus: "ONLINE",
@@ -32,6 +34,7 @@ export const mockNodes: MonitoringNode[] = [
     id: "NODE-003",
     name: "Temperature",
     blockName: "Blok B",
+    sensorType: "temperature",
     location: { latitude: -2.1356, longitude: 113.4698 },
     lastSeenAt: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
     connectionStatus: "ONLINE",
@@ -41,6 +44,7 @@ export const mockNodes: MonitoringNode[] = [
     id: "NODE-004",
     name: "Result",
     blockName: "Blok B",
+    sensorType: "risk",
     location: { latitude: -2.1401, longitude: 113.4723 },
     connectionStatus: "UNKNOWN",
   },
@@ -55,6 +59,8 @@ export const mockLatestReadings: MonitoringReading[] = [
     recordedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
     waterLevel: { value: -31, unit: "cm" },
     soilMoisture: { value: 68, unit: "%" },
+    temperature: { value: 32.5, unit: "°C" },
+    ultrasonic: { value: 42, unit: "cm" },
     riskIndex: { value: 42, status: "SIAGA", calculatedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(), previousValue: 35 },
   },
   {
@@ -63,6 +69,8 @@ export const mockLatestReadings: MonitoringReading[] = [
     recordedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     waterLevel: { value: -18, unit: "cm" },
     soilMoisture: { value: 81, unit: "%" },
+    temperature: { value: 29.1, unit: "°C" },
+    ultrasonic: { value: 28, unit: "cm" },
     riskIndex: { value: 22, status: "AMAN", calculatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), previousValue: 24 },
   },
   {
@@ -71,6 +79,8 @@ export const mockLatestReadings: MonitoringReading[] = [
     recordedAt: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
     waterLevel: { value: -46, unit: "cm" },
     soilMoisture: { value: 41, unit: "%" },
+    temperature: { value: 38.4, unit: "°C" },
+    ultrasonic: { value: 74, unit: "cm" },
     riskIndex: { value: 74, status: "AWAS", calculatedAt: new Date(Date.now() - 1 * 60 * 1000).toISOString(), previousValue: 68 },
   },
 ];
@@ -142,25 +152,31 @@ function generateTrendData(nodeId: string, hours: number): TrendDataPoint[] {
   const interval = (hours * 60 * 60 * 1000) / 48; // 48 data points
 
   // Seed values per node
-  const seeds: Record<string, { wl: number; sm: number; ri: number }> = {
-    "NODE-001": { wl: -28, sm: 72, ri: 35 },
-    "NODE-002": { wl: -16, sm: 83, ri: 20 },
-    "NODE-003": { wl: -38, sm: 48, ri: 58 },
+  const seeds: Record<string, { wl: number; sm: number; tp: number; us: number; ri: number }> = {
+    "NODE-001": { wl: -28, sm: 72, tp: 31, us: 45, ri: 35 },
+    "NODE-002": { wl: -16, sm: 83, tp: 29, us: 28, ri: 20 },
+    "NODE-003": { wl: -38, sm: 48, tp: 37, us: 68, ri: 58 },
   };
 
-  const seed = seeds[nodeId] ?? { wl: -25, sm: 70, ri: 30 };
+  const seed = seeds[nodeId] ?? { wl: -25, sm: 70, tp: 32, us: 45, ri: 30 };
   let wl = seed.wl;
   let sm = seed.sm;
+  let tp = seed.tp;
+  let us = seed.us;
   let ri = seed.ri;
 
   for (let i = 48; i >= 0; i--) {
     wl = Math.max(-60, Math.min(-5, wl + (Math.random() - 0.48) * 2.5));
     sm = Math.max(20, Math.min(95, sm + (Math.random() - 0.45) * 3));
+    tp = Math.max(25, Math.min(45, tp + (Math.random() - 0.5) * 0.8));
+    us = Math.max(10, Math.min(100, us + (Math.random() - 0.48) * 2));
     ri = Math.max(0, Math.min(100, ri + (Math.random() - 0.45) * 4));
     points.push({
       timestamp: new Date(now - i * interval).toISOString(),
       waterLevel: Math.round(wl * 10) / 10,
       soilMoisture: Math.round(sm * 10) / 10,
+      temperature: Math.round(tp * 10) / 10,
+      ultrasonic: Math.round(us * 10) / 10,
       riskIndex: Math.round(ri),
     });
   }

@@ -42,7 +42,8 @@ export function WaterLevelCard({ reading }: WaterLevelCardProps) {
       <div className="param-desc">dari permukaan tanah</div>
 
       {/* Water depth visual */}
-      <div style={{ marginTop: "var(--space-3)", display: "flex", gap: "4px", alignItems: "flex-end", height: 32 }}>
+      <div className="metric-visual">
+      <div style={{ display: "flex", gap: "4px", alignItems: "flex-end", height: 32, width: "100%" }}>
         {[-20, -30, -40, -50, -60].map((threshold) => (
           <div
             key={threshold}
@@ -59,6 +60,7 @@ export function WaterLevelCard({ reading }: WaterLevelCardProps) {
             aria-hidden="true"
           />
         ))}
+      </div>
       </div>
 
       <div className="last-update-inline">{formatTimestamp(recordedAt)}</div>
