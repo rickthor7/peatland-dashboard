@@ -12,7 +12,7 @@ export async function OPTIONS() {
   });
 }
 
-const clamp100 = (v: number) => Math.min(100, Math.max(0, v));
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 // EMQX Cloud HTTP action → sensor_logs. Payload: { tma, moisture, temperature }.
 // tma = ground water level (cm, negatif di bawah permukaan).
@@ -50,16 +50,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // 1. S — risiko kelembapan tanah: makin rendah M makin tinggi risiko.
-  const S = clamp100(((60 - moisture) / (60 - 20)) * 100);
-  // 2. T — risiko suhu: makin tinggi suhu makin tinggi risiko.
-  const T = clamp100(((temperature - 25) / (45 - 25)) * 100);
-  // 3. W — risiko kedalaman muka air: D = max(0, -tma), genangan → W = 0.
+  // HVI paper: normalisasi tiap sensor ke 0-1 dulu, clamp, kali bobot, lalu x100.
+  // D_SM makin besar bila tanah makin kering, D_T bila suhu makin tinggi,
+  // D_TMA bila muka air makin dalam. D = max(0, -tma), genangan → D_TMA = 0.
   const distance = Math.max(0, -tma);
-  const W = clamp100(((distance - 10) / (100 - 10)) * 100);
+  const dSM = clamp01((60 - moisture) / (60 - 20));
+  const dT = clamp01((temperature - 25) / (45 - 25));
+  const dTMA = clamp01((distance - 10) / (100 - 10));
 
-  // IKG = 0.4*S + 0.3*T + 0.3*W.
-  const risk_index = Math.round(0.4 * S + 0.3 * T + 0.3 * W);
+  // HVI = 100 x (0.4*D_SM + 0.3*D_T + 0.3*D_TMA).
+  const risk_index = Math.round(100 * (0.4 * dSM + 0.3 * dT + 0.3 * dTMA));
+  const S = Math.round(dSM * 100);
+  const T = Math.round(dT * 100);
+  const W = Math.round(dTMA * 100);
 
   try {
     // Created per request so a missing env var surfaces as a 500 instead of breaking the build.
