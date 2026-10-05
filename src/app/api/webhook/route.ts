@@ -7,7 +7,8 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, x-webhook-secret, Authorization",
+      "Access-Control-Allow-Headers":
+        "Content-Type, x-webhook-secret, Authorization",
     },
   });
 }
@@ -20,7 +21,10 @@ export async function POST(request: Request) {
   // Set the same value as a custom header in the EMQX HTTP action.
   const secret = process.env.WEBHOOK_SECRET;
   if (secret && request.headers.get("x-webhook-secret") !== secret) {
-    return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    return Response.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   const text = await request.text();
@@ -29,7 +33,10 @@ export async function POST(request: Request) {
     body = JSON.parse(text);
   } catch {
     console.warn("webhook rejected, invalid JSON:", text);
-    return Response.json({ success: false, error: "Invalid JSON body", received: text }, { status: 400 });
+    return Response.json(
+      { success: false, error: "Invalid JSON body", received: text },
+      { status: 400 },
+    );
   }
 
   // Dukung payload langsung maupun jika dibungkus { payload: { ... } } atau { data: { ... } }
@@ -45,8 +52,12 @@ export async function POST(request: Request) {
   if (![tma, moisture, temperature].every(Number.isFinite)) {
     console.warn("webhook rejected, bad fields:", text);
     return Response.json(
-      { success: false, error: "tma, moisture and temperature must be valid numbers", received: body },
-      { status: 400 }
+      {
+        success: false,
+        error: "tma, moisture and temperature must be valid numbers",
+        received: body,
+      },
+      { status: 400 },
     );
   }
 
@@ -54,19 +65,22 @@ export async function POST(request: Request) {
   // D_SM makin besar bila tanah makin kering, D_T bila suhu makin tinggi,
   // D_TMA bila muka air makin dalam. D = max(0, -tma), genangan → D_TMA = 0.
   const distance = Math.max(0, -tma);
-  const dSM = clamp01((60 - moisture) / (60 - 20));
-  const dT = clamp01((temperature - 25) / (45 - 25));
-  const dTMA = clamp01((distance - 10) / (100 - 10));
+  const dSM = clamp01((80 - moisture) / 80);
+  const dT = clamp01((temperature - 20) / (40 - 20));
+  const dTMA = clamp01(distance / 150);
 
-  // HVI = 100 x (0.4*D_SM + 0.3*D_T + 0.3*D_TMA).
-  const risk_index = Math.round(100 * (0.4 * dSM + 0.3 * dT + 0.3 * dTMA));
+  // HVI = 100 x (0.3*D_SM + 0.2*D_T + 0.5*D_TMA).
+  const risk_index = Math.round(100 * (0.3 * dSM + 0.2 * dT + 0.5 * dTMA));
   const S = Math.round(dSM * 100);
   const T = Math.round(dT * 100);
   const W = Math.round(dTMA * 100);
 
   try {
     // Created per request so a missing env var surfaces as a 500 instead of breaking the build.
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_ANON_KEY!,
+    );
     const { error } = await supabase.from("sensor_logs").insert({
       tma,
       moisture,
@@ -76,10 +90,22 @@ export async function POST(request: Request) {
     });
     if (error) throw error;
 
-    console.log("webhook saved:", { tma, moisture, temperature, distance, S, T, W, risk_index });
+    console.log("webhook saved:", {
+      tma,
+      moisture,
+      temperature,
+      distance,
+      S,
+      T,
+      W,
+      risk_index,
+    });
     return Response.json({ success: true, risk_index, S, T, W });
   } catch (err) {
     console.error("sensor_logs insert failed:", err);
-    return Response.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return Response.json(
+      { success: false, error: (err as Error).message },
+      { status: 500 },
+    );
   }
 }
