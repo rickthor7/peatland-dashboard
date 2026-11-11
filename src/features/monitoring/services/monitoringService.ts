@@ -16,7 +16,6 @@ import {
   getDummySensorValues,
   getDummyTrendData,
   getMockTrendData,
-  mockAlerts,
   mockLatestReadings,
   mockNodes,
 } from "@/mocks/monitoring";
@@ -50,29 +49,29 @@ const PERIOD_HOURS: Record<TimePeriod, number> = { "24h": 24, "7d": 168, "30d": 
 // Hasilnya dipakai bersama, jadi jangan dimutasi (pakai toReversed, bukan reverse).
 const inflight = new Map<string, Promise<SensorLog[] | null>>();
 
-// Status mode data global (diperbarui setiap request ke /api/readings).
-let dataMode: "live" | "dummy" = "live";
-let modeNote = "";
+// Status koneksi ke database (diperbarui setiap request ke /api/readings).
+const dbState = { reachable: true, errorNote: "" };
+// true bila query terbaru ke database tidak menemukan satu pun baris.
+let dbEmpty = false;
+
+/**
+ * Mode data efektif:
+ * - "dummy" bila database tidak terjangkau ATAU isinya kosong
+ * - "live"  bila ada telemetri asli yang bisa ditampilkan
+ */
+function currentMode(): { mode: "live" | "dummy"; note: string } {
+  if (!dbState.reachable) {
+    return { mode: "dummy", note: dbState.errorNote };
+  }
+  if (dbEmpty) {
+    return { mode: "dummy", note: "database kosong — memakai data dummy" };
+  }
+  return { mode: "live", note: "" };
+}
 
 /** Mode data aktif: "live" (telemetri asli) atau "dummy" (cadangan, dibuat di browser). */
 export function getDataMode(): { mode: "live" | "dummy"; note: string } {
-  return { mode: dataMode, note: modeNote };
-}
-
-function enterDummyMode(reason: string) {
-  if (dataMode !== "dummy") {
-    console.warn(`[monitoring] koneksi database terputus → mode dummy aktif. Alasan: ${reason}`);
-  }
-  dataMode = "dummy";
-  modeNote = reason;
-}
-
-function enterLiveMode() {
-  if (dataMode !== "live") {
-    console.info("[monitoring] koneksi database pulih → mode live aktif kembali.");
-  }
-  dataMode = "live";
-  modeNote = "";
+  return currentMode();
 }
 
 // Timeout supaya koneksi yang menggantung tidak menggantungi UI.
@@ -86,23 +85,29 @@ function fetchLogs(params: Record<string, number>): Promise<SensorLog[] | null> 
       .then((res) => {
         // 503 not_configured = env Supabase belum diisi (mis. dev lokal)
         if (res.status === 503) {
-          enterDummyMode("backend belum dikonfigurasi (env Supabase kosong)");
+          dbState.reachable = false;
+          dbState.errorNote = "backend belum dikonfigurasi (env Supabase kosong)";
+          console.warn(`[monitoring] ${dbState.errorNote} → mode dummy aktif.`);
           return null;
         }
         // 5xx / 4xx lain = koneksi ke database gagal → mode dummy.
         if (!res.ok) {
-          enterDummyMode(`database merespons HTTP ${res.status}`);
+          dbState.reachable = false;
+          dbState.errorNote = `database merespons HTTP ${res.status}`;
+          console.warn(`[monitoring] ${dbState.errorNote} → mode dummy aktif.`);
           return null;
         }
-        enterLiveMode();
+        dbState.reachable = true;
+        dbState.errorNote = "";
         return res.json();
       })
       .catch((err: unknown) => {
-        const reason =
+        dbState.reachable = false;
+        dbState.errorNote =
           err instanceof DOMException && err.name === "TimeoutError"
             ? "database tidak merespons (timeout)"
             : `koneksi gagal: ${err instanceof Error ? err.message : "unknown error"}`;
-        enterDummyMode(reason);
+        console.warn(`[monitoring] ${dbState.errorNote} → mode dummy aktif.`);
         return null;
       })
       .finally(() => inflight.delete(url));
@@ -195,16 +200,22 @@ function simulateReading(base: MonitoringReading): MonitoringReading {
 }
 
 // Semua node + pembacaan terakhirnya; LIVE_NODES diganti data Supabase.
-// fetchLogs null = database tak terhubung → mode dummy: data dibuat di browser.
+// logs null  = database tak terjangkau  → mode dummy
+// logs []    = database ada tapi kosong  → mode dummy (supaya tetap ada yang tampil)
 async function snapshot() {
   const logs = await fetchLogs({ limit: 2 });
   const now = new Date().toISOString();
-  if (!logs) {
+  dbEmpty = logs !== null && logs.length === 0;
+
+  if (!logs || dbEmpty) {
+    if (dbEmpty && !dbState.errorNote) {
+      console.warn("[monitoring] database kosong → memakai data dummy.");
+    }
     return {
       nodes: mockNodes.map((n): MonitoringNode => ({
         ...n,
         lastSeenAt: now,
-        // Koneksi nyata tidak diketahui saat DB terputus → UNKNOWN (bukan ONLINE).
+        // Koneksi nyata tidak diketahui saat data tidak tersedia → UNKNOWN (bukan ONLINE).
         connectionStatus: "UNKNOWN",
       })),
       readings: dummyReadings(),
@@ -262,7 +273,8 @@ function statusChanges(logs: SensorLog[]): RiskAlert[] {
 class MonitoringService implements MonitoringRepository {
   async getSystemStatus(): Promise<SystemStatus> {
     const { nodes, readings } = await snapshot();
-    const dummy = dataMode === "dummy";
+    const { mode, note } = currentMode();
+    const dummy = mode === "dummy";
     return {
       // Mode dummy selalu AMAN: data rekaan tidak boleh memicu status kritis.
       overallStatus: dummy ? "AMAN" : highestRisk(readings)?.riskIndex.status ?? "AMAN",
@@ -270,8 +282,8 @@ class MonitoringService implements MonitoringRepository {
       onlineNodes: dummy ? 0 : nodes.filter((n) => n.connectionStatus === "ONLINE").length,
       lastUpdatedAt: readings.map((r) => r.recordedAt).sort().at(-1) ?? new Date().toISOString(),
       isConnected: !dummy,
-      dataMode: dataMode,
-      modeNote: modeNote || undefined,
+      dataMode: mode,
+      modeNote: note || undefined,
     };
   }
 
@@ -297,13 +309,21 @@ class MonitoringService implements MonitoringRepository {
   async getTrendData(nodeId: string, period: TimePeriod): Promise<TrendDataPoint[]> {
     const key = `${nodeId}-${period}`;
     const mock = () => {
-      if (!mockTrends.has(key)) mockTrends.set(key, getMockTrendData(nodeId, period));
+      if (!mockTrends.has(key)) {
+        mockTrends.set(
+          key,
+          getMockTrendData(nodeId, period).map((p) => ({ ...p, synthetic: true })),
+        );
+      }
       return mockTrends.get(key)!;
     };
     if (!LIVE_NODES.has(nodeId)) return mock();
     const logs = await fetchLogs({ hours: PERIOD_HOURS[period] });
-    // Mode dummy → tren disimulasikan di browser, tetap pada rentang aman.
-    if (!logs) return getDummyTrendData(period);
+    // Tidak ada data (DB mati atau periode ini kosong) → pakai data dummy,
+    // supaya grafik tidak pernah kosong ("Belum ada data untuk periode ini").
+    if (!logs || logs.length === 0) {
+      return getDummyTrendData(period).map((p) => ({ ...p, synthetic: true }));
+    }
     return logs.toReversed().map((l) => ({
       timestamp: l.created_at,
       waterLevel: l.tma,
@@ -322,9 +342,11 @@ class MonitoringService implements MonitoringRepository {
   // ponytail: alert REAL_NODE dihitung ulang dari 30 hari pembacaan tiap request, "acknowledged" tidak disimpan; buat tabel alerts bila perlu riwayat/ack.
   async getAlerts(params?: { nodeId?: string; status?: string }): Promise<RiskAlert[]> {
     const logs = await fetchLogs({ hours: PERIOD_HOURS["30d"] });
+    const { mode, note } = currentMode();
 
-    // Mode dummy: tidak ada riwayat telemetri nyata → satu info AMAN saja.
-    if (!logs) {
+    // Mode dummy (DB mati / kosong): tidak ada riwayat telemetri nyata →
+    // tampilkan satu info AMAN, tanpa peringatan palsu dari data rekaan.
+    if (mode === "dummy" || !logs || logs.length === 0) {
       const info: RiskAlert = {
         id: "MODE-DUMMY",
         nodeId: REAL_NODE,
@@ -333,7 +355,7 @@ class MonitoringService implements MonitoringRepository {
         status: "AMAN",
         title: "Mode Simulasi (Dummy) Aktif",
         message:
-          `Koneksi database terputus${modeNote ? ` (${modeNote})` : ""}. ` +
+          `Koneksi database terputus${note ? ` (${note})` : ""}. ` +
           "Data yang tampil dibuat langsung di website tanpa MQTT dan berstatus AMAN " +
           "hingga koneksi ke database pulih.",
         createdAt: new Date().toISOString(),
@@ -346,8 +368,8 @@ class MonitoringService implements MonitoringRepository {
       return dummyAlerts;
     }
 
-    const real = statusChanges(logs.toReversed());
-    let alerts = [...real, ...mockAlerts.filter((a) => a.nodeId !== REAL_NODE)];
+    // Live: hanya perubahan status dari telemetri asli (tanpa alert rekaan).
+    let alerts = statusChanges(logs.toReversed());
     if (params?.nodeId) alerts = alerts.filter((a) => a.nodeId === params.nodeId);
     if (params?.status && params.status !== "ALL") alerts = alerts.filter((a) => a.status === params.status);
     return alerts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));

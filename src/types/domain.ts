@@ -87,6 +87,8 @@ export interface TrendDataPoint {
   temperature: number;
   tma: number;
   riskIndex: number;
+  /** true bila titik dibuat di browser (mode dummy), bukan telemetri asli. */
+  synthetic?: boolean;
 }
 
 export type TimePeriod = "24h" | "7d" | "30d";

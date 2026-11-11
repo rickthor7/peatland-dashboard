@@ -10,6 +10,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { Radio } from "lucide-react";
 import type { TrendDataPoint, TimePeriod } from "@/types/domain";
 import { RISK_THRESHOLDS, formatChartTime } from "@/lib/constants";
 
@@ -43,6 +44,23 @@ function PeriodTabs({ period, onChange }: { period: TimePeriod; onChange: (p: Ti
         </button>
       ))}
     </div>
+  );
+}
+
+/* ── Penanda data dummy ─────────────────────────────────── */
+
+const isSynthetic = (data: TrendDataPoint[]) => data.some((p) => p.synthetic);
+
+function SyntheticTag({ synthetic }: { synthetic?: boolean }) {
+  if (!synthetic) return null;
+  return (
+    <span
+      className="synthetic-tag"
+      title="Data dibuat di browser (mode dummy), bukan telemetri asli"
+    >
+      <Radio size={9} aria-hidden="true" />
+      Data simulasi
+    </span>
   );
 }
 
@@ -96,7 +114,10 @@ export function RiskTrendChart({ data, period, onPeriodChange, isLoading, title 
         <div className="chart-header">
           <div>
             <div className="chart-title">{title ?? "Tren Indeks Kerawanan Gambut"}</div>
-            <div className="chart-subtitle">Nilai IKG 0–100 · batas SIAGA ≥{RISK_THRESHOLDS.SIAGA}, AWAS ≥{RISK_THRESHOLDS.AWAS}</div>
+            <div className="chart-subtitle">
+              Nilai IKG 0–100 · batas SIAGA ≥{RISK_THRESHOLDS.SIAGA}, AWAS ≥{RISK_THRESHOLDS.AWAS}
+              <SyntheticTag synthetic={isSynthetic(data)} />
+            </div>
           </div>
           <PeriodTabs period={period} onChange={onPeriodChange} />
         </div>
@@ -188,7 +209,10 @@ export function WaterLevelChart({ data, period, onPeriodChange, isLoading }: Cha
         <div className="chart-header">
           <div>
             <div className="chart-title">Tinggi Muka Air</div>
-            <div className="chart-subtitle">TMA dalam cm dari permukaan tanah</div>
+            <div className="chart-subtitle">
+              TMA dalam cm dari permukaan tanah
+              <SyntheticTag synthetic={isSynthetic(data)} />
+            </div>
           </div>
           <PeriodTabs period={period} onChange={onPeriodChange} />
         </div>
@@ -267,7 +291,10 @@ export function TemperatureChart({ data, period, onPeriodChange, isLoading }: Ch
         <div className="chart-header">
           <div>
             <div className="chart-title">Suhu</div>
-            <div className="chart-subtitle">Suhu dalam derajat Celsius</div>
+            <div className="chart-subtitle">
+              Suhu dalam derajat Celsius
+              <SyntheticTag synthetic={isSynthetic(data)} />
+            </div>
           </div>
           <PeriodTabs period={period} onChange={onPeriodChange} />
         </div>
@@ -338,7 +365,10 @@ export function SoilMoistureChart({ data, period, onPeriodChange, isLoading }: C
         <div className="chart-header">
           <div>
             <div className="chart-title">Kelembaban Tanah</div>
-            <div className="chart-subtitle">Persentase kandungan air dalam tanah</div>
+            <div className="chart-subtitle">
+              Persentase kandungan air dalam tanah
+              <SyntheticTag synthetic={isSynthetic(data)} />
+            </div>
           </div>
           <PeriodTabs period={period} onChange={onPeriodChange} />
         </div>

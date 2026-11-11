@@ -55,7 +55,7 @@ export function SystemStatusBanner({ status }: SystemStatusBannerProps) {
           </div>
           <div className="system-status-desc">
             {isDummy
-              ? "Koneksi database terputus — data dummy dibuat langsung di website (tanpa MQTT) dan status dipaksa aman."
+              ? `Koneksi database terputus${status.modeNote ? ` (${status.modeNote})` : ""} — data dummy dibuat langsung di website (tanpa MQTT) dan status dipaksa aman.`
               : DESCRIPTIONS[status.overallStatus]}
           </div>
         </div>
