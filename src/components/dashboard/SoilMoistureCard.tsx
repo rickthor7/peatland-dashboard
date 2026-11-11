@@ -2,6 +2,7 @@
 
 import { Leaf } from "lucide-react";
 import type { MonitoringReading } from "@/types/domain";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { formatTimestamp } from "@/lib/constants";
 
 interface SoilMoistureCardProps {
@@ -43,7 +44,7 @@ export function SoilMoistureCard({ reading }: SoilMoistureCardProps) {
       </div>
 
       <div className="param-value" aria-label={`Kelembaban Tanah: ${soilMoisture.value} ${soilMoisture.unit}`}>
-        <span style={{ color: activeZone.color }}>{soilMoisture.value}</span>
+        <span style={{ color: activeZone.color }}><AnimatedNumber value={soilMoisture.value} decimals={1} /></span>
         <span className="param-unit">{soilMoisture.unit}</span>
       </div>
 

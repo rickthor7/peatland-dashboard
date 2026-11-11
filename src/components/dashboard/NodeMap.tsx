@@ -320,7 +320,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
                   alignItems: "center",
                   gap: "6px",
                   border: isSelected ? "1px solid var(--accent, #22c55e)" : "1px solid var(--border-subtle)",
-                  background: isSelected ? "rgba(34, 197, 94, 0.15)" : "var(--bg-card-subtle, rgba(255,255,255,0.03))",
+                  background: isSelected ? "rgba(34, 197, 94, 0.15)" : "var(--bg-elevated)",
                   color: isSelected ? "var(--text-primary)" : "var(--text-secondary)",
                   transition: "all 0.15s ease",
                 }}
@@ -343,7 +343,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
       {/* Grid Map & Detail Panel */}
       <div className="map-layout-grid">
         {/* Kontainer Peta OSM */}
-        <div style={{ position: "relative", minHeight: 420, width: "100%", background: "#0a0f0a" }}>
+        <div style={{ position: "relative", minHeight: 420, width: "100%", background: "var(--bg-elevated)" }}>
           <div id="node-map" ref={mapContainerRef} style={{ width: "100%", height: "100%", minHeight: 420 }} />
           <div
             style={{
@@ -372,7 +372,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
         <div
           style={{
             borderLeft: "1px solid var(--border-subtle)",
-            background: "var(--bg-card, rgba(17, 26, 18, 0.95))",
+            background: "var(--bg-surface)",
             padding: "var(--space-4)",
             display: "flex",
             flexDirection: "column",
@@ -407,7 +407,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
                     gap: "5px",
                     padding: "3px 8px",
                     borderRadius: "4px",
-                    background: isSelectedLive ? "rgba(34, 197, 94, 0.15)" : "rgba(148, 163, 184, 0.12)",
+                    background: isSelectedLive ? "rgba(34, 197, 94, 0.15)" : "var(--bg-elevated)",
                     color: isSelectedLive ? "#4ade80" : "var(--text-secondary)",
                     fontSize: "0.7rem",
                     fontWeight: 600,
@@ -492,7 +492,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
                   style={{
                     fontSize: "0.75rem",
                     color: "var(--text-secondary)",
-                    background: "rgba(0,0,0,0.2)",
+                    background: "var(--bg-elevated)",
                     padding: "8px 10px",
                     borderRadius: "6px",
                     border: "1px solid var(--border-subtle)",

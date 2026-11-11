@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Wifi, WifiOff, Clock } from "lucide-react";
 import { monitoringRepository } from "@/features/monitoring/services/monitoringService";
 import type { MonitoringNode, MonitoringReading, TrendDataPoint, TimePeriod, SensorType } from "@/types/domain";
 import { StatusBadge } from "@/components/status/StatusBadge";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { RiskTrendChart, SoilMoistureChart, TemperatureChart, WaterLevelChart } from "@/components/charts/Charts";
 import { LoadingSkeleton, ErrorState } from "@/components/ui/States";
 import { formatRelativeTime, formatFullDate, SENSOR_META } from "@/lib/constants";
@@ -148,7 +149,7 @@ export function NodeDetailClient({ nodeId }: NodeDetailClientProps) {
           <div className="card" style={{ borderTop: `3px solid var(--status-${statusCls})` }} data-aos="fade-up" data-aos-delay="0">
             <div className="card-label" style={{ marginBottom: "var(--space-3)" }}>Indeks Kerawanan</div>
             <div className={`risk-index-value ${statusCls}`} aria-label={`Indeks Kerawanan: ${reading.riskIndex.value}`}>
-              {reading.riskIndex.value}
+              <AnimatedNumber value={reading.riskIndex.value} />
               <span style={{ fontSize: "1rem", fontWeight: 500, color: "var(--text-tertiary)", marginLeft: "4px" }}>/100</span>
             </div>
             <StatusBadge status={reading.riskIndex.status} />

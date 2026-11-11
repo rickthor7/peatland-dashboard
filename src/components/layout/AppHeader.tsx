@@ -63,7 +63,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
           aria-live="polite"
           aria-label={`Waktu sekarang: ${currentTime}`}
         >
-          <Clock size={13} aria-hidden="true" />
+          <span className="live-dot" aria-hidden="true" />
           {currentTime}
         </div>
 

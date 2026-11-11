@@ -3,6 +3,7 @@
 import { Gauge, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { MonitoringReading } from "@/types/domain";
 import { StatusBadge } from "@/components/status/StatusBadge";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { formatTimestamp } from "@/lib/constants";
 
 interface RiskSummaryCardProps {
@@ -48,7 +49,7 @@ export function RiskSummaryCard({ reading }: RiskSummaryCardProps) {
         className={`risk-index-value ${cls}`}
         aria-label={`Indeks Kerawanan Gambut: ${riskIndex.value} dari 100`}
       >
-        {riskIndex.value}
+        <AnimatedNumber value={riskIndex.value} />
         <span style={{ fontSize: "1.25rem", fontWeight: 500, color: "var(--text-tertiary)", marginLeft: "4px", letterSpacing: 0 }}>
           /100
         </span>

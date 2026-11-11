@@ -130,9 +130,9 @@
   --chart-grid:     rgba(22, 101, 52, 0.07);
   --chart-axis:     #74a882;
 
-  --shadow-sm:   0 1px 4px rgba(0,0,0,0.06);
-  --shadow-md:   0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(22,101,52,0.04);
-  --shadow-lg:   0 12px 40px rgba(0,0,0,0.10), 0 0 0 1px rgba(22,101,52,0.06);
+  --shadow-sm:   0 1px 3px rgba(22, 101, 52, 0.06);
+  --shadow-md:   0 6px 20px rgba(22, 101, 52, 0.10), 0 1px 3px rgba(22, 101, 52, 0.05);
+  --shadow-lg:   0 16px 44px rgba(22, 101, 52, 0.14), 0 4px 12px rgba(22, 101, 52, 0.08);
   --shadow-glow: 0 0 20px rgba(22, 163, 74, 0.12);
 }
 
@@ -1988,7 +1988,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .map-telemetry-tile {
   padding: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   animation: telemetryFlash 0.9s ease-out;
@@ -2000,4 +2000,461 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes telemetryFlash {
   0%   { box-shadow: 0 0 0 0 var(--accent-glow); background-color: var(--accent-glow); }
   100% { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REDESIGN v2 — default light, sidebar collapse, interaktif
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Latar aurora animasi ─────────────────────────────────── */
+
+@keyframes aurora-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(4%, -3%, 0) scale(1.1); }
+}
+
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5%, 4%, 0) scale(0.92); }
+}
+
+[data-theme="dark"] body::before {
+  animation: aurora-drift 26s ease-in-out infinite;
+}
+
+[data-theme="dark"] body::after,
+[data-theme="light"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 50% 42% at 85% 8%, rgba(251, 191, 36, 0.05) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 40% at 12% 85%, rgba(96, 165, 250, 0.05) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+  animation: aurora-drift-2 34s ease-in-out infinite;
+}
+
+[data-theme="light"] body::before {
+  animation: aurora-drift 26s ease-in-out infinite;
+}
+
+/* ── Sidebar: brand icon premium + tombol collapse ────────── */
+
+.sidebar-brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #16a34a 0%, #14532d 100%);
+  box-shadow:
+    0 4px 12px rgba(22, 163, 74, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform var(--transition-bounce), box-shadow var(--transition-base);
+}
+
+.sidebar-brand:hover .sidebar-brand-icon {
+  transform: rotate(-8deg) scale(1.1);
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+
+.sidebar-brand-copy {
+  flex: 1;
+  min-width: 0;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar-collapse-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-collapse-btn:hover {
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border-color: var(--border-default);
+  transform: scale(1.1);
+}
+
+.sidebar-collapse-btn:active { transform: scale(0.92); }
+
+/* ── Sidebar collapse: rail ikon ──────────────────────────── */
+
+.app-sidebar.collapsed {
+  width: 76px;
+  overflow: visible;
+}
+
+.app-sidebar.collapsed .sidebar-brand {
+  padding-inline: var(--space-3);
+  gap: 0;
+  justify-content: center;
+}
+
+.app-sidebar.collapsed .sidebar-brand-copy {
+  display: none;
+}
+
+.app-sidebar.collapsed .sidebar-collapse-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+
+.app-sidebar.collapsed .sidebar-nav {
+  padding-inline: var(--space-2);
+}
+
+.app-sidebar.collapsed .sidebar-nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 10px 0;
+}
+
+.app-sidebar.collapsed .sidebar-nav-label {
+  display: none;
+}
+
+.app-sidebar.collapsed .connection-indicator {
+  justify-content: center;
+  gap: 4px;
+}
+
+.app-sidebar.collapsed .connection-indicator .sidebar-nav-label {
+  display: none;
+}
+
+.app-sidebar.collapsed .theme-toggle {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+
+.app-sidebar.collapsed .theme-toggle-track {
+  display: none;
+}
+
+/* Tooltip muncul saat sidebar collapsed */
+.sidebar-nav-tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: var(--bg-overlay);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 200;
+  box-shadow: var(--shadow-md);
+}
+
+.app-sidebar.collapsed .sidebar-nav-item:hover .sidebar-nav-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ── Nav item: efek sapuan cahaya ─────────────────────────── */
+
+.sidebar-nav-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0%, var(--accent-subtle) 50%, transparent 100%);
+  opacity: 0;
+  transform: translateX(-35%);
+  transition: opacity var(--transition-base), transform var(--transition-slow);
+  pointer-events: none;
+}
+
+.sidebar-nav-item:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sidebar-nav-item:active { transform: scale(0.98); }
+
+/* ── Kartu: glow gradient border + micro-lift ─────────────── */
+
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--accent-glow) 0%, transparent 35%, transparent 65%, var(--accent-glow) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+  pointer-events: none;
+}
+
+.card:hover::after { opacity: 1; }
+
+.metric-cards .card {
+  transition:
+    transform var(--transition-bounce),
+    box-shadow var(--transition-base),
+    border-color var(--transition-fast);
+}
+
+.metric-cards .card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+
+/* ── Banner status: sapuan sheen ──────────────────────────── */
+
+.system-status-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.10) 48%, transparent 62%);
+  transform: translateX(-120%);
+  animation: banner-sheen 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes banner-sheen {
+  0%, 55%   { transform: translateX(-120%); }
+  85%, 100% { transform: translateX(120%); }
+}
+
+/* ── Judul halaman: underline gradient bergerak ───────────── */
+
+.page-title {
+  position: relative;
+  display: inline-block;
+}
+
+.page-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  height: 3px;
+  width: 48px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--status-siaga) 50%, var(--accent) 100%);
+  background-size: 200% 100%;
+  animation: gradient-slide 3.5s linear infinite;
+}
+
+@keyframes gradient-slide {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* ── Tombol: feedback tekan ───────────────────────────────── */
+
+button:active { transform: scale(0.97); }
+button { will-change: transform; }
+
+/* ── Header: live dot berdenyut ───────────────────────────── */
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-aman);
+  box-shadow: 0 0 0 3px var(--status-aman-glow);
+  animation: dot-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* ── Chart card hover ─────────────────────────────────────── */
+
+.chart-container:hover {
+  border-color: var(--border-default);
+}
+
+/* ── Ikon header interaktif ───────────────────────────────── */
+
+.header-icon-btn:active,
+.header-theme-btn:active,
+.mobile-menu-btn:active { transform: scale(0.9); }
+
+/* ── Status badge: pop saat muncul ────────────────────────── */
+
+.status-badge { animation: badge-in var(--transition-slow) both; }
+
+@keyframes badge-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.status-badge.awas {
+  animation: badge-in var(--transition-slow) both, awas-badge-pulse 2s ease-in-out 0.3s infinite;
+}
+
+/* ── Node card interaktif ─────────────────────────────────── */
+
+.node-card .sidebar-nav-icon { display: none; }
+
+.node-card .node-card-name { transition: color var(--transition-fast); }
+.node-card:hover .node-card-name { color: var(--accent); }
+
+.node-card .node-card-param-value { transition: transform var(--transition-base); }
+.node-card:hover .node-card-param-value { transform: translateX(2px); }
+
+/* ── Alert item: masuk dengan pop ─────────────────────────── */
+
+.alert-item-icon { transition: transform var(--transition-bounce), box-shadow var(--transition-base); }
+
+.alert-item:hover .alert-item-icon {
+  transform: scale(1.12) rotate(-4deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Aksesibilitas: hormati reduced motion ────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Mobile: sidebar collapse tidak berlaku ───────────────── */
+
+@media (max-width: 768px) {
+  .app-sidebar.collapsed { width: 268px; overflow-y: auto; overflow-x: hidden; }
+  .app-sidebar.collapsed .sidebar-brand { padding-inline: var(--space-5); gap: var(--space-3); justify-content: flex-start; }
+  .app-sidebar.collapsed .sidebar-brand-copy { display: block; }
+  .app-sidebar.collapsed .sidebar-collapse-btn { position: static; width: 28px; height: 28px; background: transparent; }
+  .app-sidebar.collapsed .sidebar-nav { padding-inline: var(--space-3); }
+  .app-sidebar.collapsed .sidebar-nav-item { justify-content: flex-start; gap: var(--space-3); padding: 10px var(--space-3); }
+  .app-sidebar.collapsed .sidebar-nav-label { display: inline; }
+  .app-sidebar.collapsed .connection-indicator { justify-content: flex-start; gap: var(--space-2); }
+  .app-sidebar.collapsed .connection-indicator .sidebar-nav-label { display: inline; }
+  .app-sidebar.collapsed .theme-toggle { justify-content: flex-start; gap: var(--space-2); padding-inline: var(--space-3); }
+  .app-sidebar.collapsed .theme-toggle-track { display: block; }
+  .sidebar-nav-tooltip { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE POLISH — responsif penuh ≤768px
+   ═══════════════════════════════════════════════════════════════ */
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, select, input {
+  touch-action: manipulation;
+}
+
+/* Guard: tidak ada scroll horizontal tak sengaja */
+body {
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  /* Header lebih ringkas */
+  .app-header { padding: 0 var(--space-4); gap: var(--space-2); }
+  .header-page-title { font-size: 0.875rem; }
+  .header-icon-btn, .header-theme-btn, .mobile-menu-btn { width: 38px; height: 38px; }
+  .notification-badge { width: 16px; height: 16px; font-size: 0.5rem; }
+
+  /* Input ≥16px agar iOS tidak auto-zoom saat fokus */
+  .search-input,
+  .filter-select {
+    font-size: 16px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  /* Kartu metrik & angka besar proporsional */
+  .risk-index-value { font-size: 3.25rem; }
+  .param-value { font-size: 2rem; }
+  .metric-cards .risk-index-value,
+  .metric-cards .param-value { min-height: 56px; }
+  .metric-cards .metric-visual { min-height: 40px; }
+
+  /* Banner status lebih rapat */
+  .system-status-banner { padding: var(--space-5); border-radius: var(--radius-lg); }
+  .system-status-icon-wrap { width: 44px; height: 44px; }
+  .system-status-icon-wrap svg { width: 20px; height: 20px; }
+  .system-status-value { font-size: 1.5rem; }
+  .system-status-node-count { font-size: 1.25rem; }
+
+  /* Chart card lebih rapat (override padding inline) */
+  .chart-container > div:first-child {
+    padding: var(--space-4) var(--space-4) 0 !important;
+  }
+  .chart-title { font-size: 0.875rem; }
+  .chart-period-tab { padding: 6px 12px; font-size: 0.75rem; }
+
+  /* Peta: tinggi nyaman di layar sempit */
+  .map-layout-grid { min-height: 0; }
+  .map-layout-grid > div:first-child,
+  #node-map { min-height: 300px !important; }
+
+  /* Ringkasan alert lebih ringkas */
+  .alert-summary-item { padding: var(--space-4); border-radius: var(--radius-md); }
+  .alert-summary-count { font-size: 2rem; }
+  .alert-summary-item svg { width: 24px; height: 24px; }
+
+  /* Alert item: aksi & waktu rapat */
+  .alert-item { gap: var(--space-3); }
+  .alert-item-icon { width: 34px; height: 34px; }
+  .alert-item-icon svg { width: 16px; height: 16px; }
+
+  /* Node card */
+  .node-card-params { gap: var(--space-2); }
+  .node-card-param-value { font-size: 1rem; }
+
+  /* Tabel: tiap sel sedikit lebih rapat */
+  .history-table th, .history-table td { padding: var(--space-2) var(--space-3); }
+
+  /* Back link & tombol lebih besar untuk jempol */
+  .btn-retry, .back-link { padding: 10px 14px; }
+  .back-link { padding: 6px 8px; margin-left: -8px; }
+
+  /* Drawer sidebar: full-height scroll aman */
+  .app-sidebar {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+@media (max-width: 480px) {
+  .page-content { padding-inline: var(--space-3); }
+  .risk-index-value { font-size: 2.75rem; }
+  .param-value { font-size: 1.75rem; }
+  .chart-period-tab { flex: 1; text-align: center; }
+  .chart-period-tabs { width: 100%; display: flex; }
+  .chart-header { width: 100%; }
+  .node-detail-name { font-size: 1.35rem; }
+  .alert-summary-count { font-size: 1.75rem; }
+  .map-telemetry-tile__value { font-size: 1.05rem; }
 }

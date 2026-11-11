@@ -16,17 +16,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" data-theme="dark" suppressHydrationWarning>
+    <html lang="id" data-theme="light" suppressHydrationWarning>
       <head>
-        {/* Anti-flash: terapkan tema sebelum render pertama */}
+        {/* Anti-flash: terapkan tema sebelum render pertama. Default: light. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
                   var saved = localStorage.getItem('peatland-theme');
-                  var preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  var theme = saved || preferred;
+                  // Default: light. Dark hanya jika user pernah memilihnya.
+                  var theme = saved === 'dark' ? 'dark' : 'light';
                   document.documentElement.setAttribute('data-theme', theme);
                 } catch(e) {}
               })();

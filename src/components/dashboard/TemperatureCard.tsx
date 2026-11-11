@@ -2,6 +2,7 @@
 
 import { Thermometer } from "lucide-react";
 import type { MonitoringReading } from "@/types/domain";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { formatTimestamp } from "@/lib/constants";
 
 interface TemperatureCardProps {
@@ -37,7 +38,7 @@ export function TemperatureCard({ reading }: TemperatureCardProps) {
       </div>
 
       <div className="param-value" aria-label={`Suhu: ${temperature.value} ${temperature.unit}`}>
-        <span style={{ color: valueColor }}>{temperature.value}</span>
+        <span style={{ color: valueColor }}><AnimatedNumber value={temperature.value} decimals={1} /></span>
         <span className="param-unit">{temperature.unit}</span>
       </div>
 

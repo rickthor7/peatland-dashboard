@@ -2,6 +2,7 @@
 
 import { Droplets } from "lucide-react";
 import type { MonitoringReading } from "@/types/domain";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { formatTimestamp } from "@/lib/constants";
 
 interface WaterLevelCardProps {
@@ -35,7 +36,7 @@ export function WaterLevelCard({ reading }: WaterLevelCardProps) {
       </div>
 
       <div className="param-value" aria-label={`TMA: ${waterLevel.value} ${waterLevel.unit} dari permukaan`}>
-        <span style={{ color: valueColor }}>{waterLevel.value}</span>
+        <span style={{ color: valueColor }}><AnimatedNumber value={waterLevel.value} decimals={1} /></span>
         <span className="param-unit">{waterLevel.unit}</span>
       </div>
 

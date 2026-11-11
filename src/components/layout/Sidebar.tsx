@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Activity, Bell, Leaf, Wifi, Sun, Moon } from "lucide-react";
+import {
+  LayoutDashboard, Activity, Bell, Leaf, Wifi, Sun, Moon,
+  PanelLeftClose, PanelLeftOpen,
+} from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
 const NAV_ITEMS = [
@@ -11,7 +14,12 @@ const NAV_ITEMS = [
   { href: "/alerts", label: "Alerts", icon: Bell },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}
+
+export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
@@ -22,15 +30,25 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Brand */}
+      {/* Brand + toggle collapse */}
       <div className="sidebar-brand">
         <div className="sidebar-brand-icon" aria-hidden="true">
           <Leaf size={16} color="white" strokeWidth={2.5} />
         </div>
-        <div>
+        <div className="sidebar-brand-copy">
           <div className="sidebar-brand-text">Peatland</div>
           <div className="sidebar-brand-sub">IoT Analytics System</div>
         </div>
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Perluas sidebar" : "Ringkas sidebar"}
+          aria-expanded={!collapsed}
+          title={collapsed ? "Perluas sidebar" : "Ringkas sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+        </button>
       </div>
 
       {/* Navigation */}
@@ -44,6 +62,7 @@ export function Sidebar() {
               href={item.href}
               className={`sidebar-nav-item${active ? " active" : ""}`}
               aria-current={active ? "page" : undefined}
+              title={collapsed ? item.label : undefined}
             >
               <Icon
                 size={18}
@@ -51,7 +70,8 @@ export function Sidebar() {
                 aria-hidden="true"
                 strokeWidth={active ? 2.5 : 2}
               />
-              {item.label}
+              <span className="sidebar-nav-label">{item.label}</span>
+              <span className="sidebar-nav-tooltip" aria-hidden="true">{item.label}</span>
             </Link>
           );
         })}
@@ -60,14 +80,14 @@ export function Sidebar() {
       {/* Footer */}
       <div className="sidebar-footer">
         {/* Connection indicator */}
-        <div className="connection-indicator">
+        <div className="connection-indicator" title="Status koneksi sistem">
           <span
             className="connection-dot online"
             role="status"
             aria-label="Status koneksi sistem: terhubung"
           />
           <Wifi size={12} aria-hidden="true" />
-          <span>System connected</span>
+          <span className="sidebar-nav-label">System connected</span>
         </div>
 
         {/* Theme toggle */}
@@ -76,11 +96,12 @@ export function Sidebar() {
           onClick={toggleTheme}
           aria-label={`Mode ${theme === "dark" ? "gelap aktif — klik untuk mode terang" : "terang aktif — klik untuk mode gelap"}`}
           id="theme-toggle-sidebar"
+          title={theme === "dark" ? "Mode Terang" : "Mode Gelap"}
         >
           {theme === "dark" ? (
-            <><Sun size={14} aria-hidden="true" /> Mode Terang</>
+            <><Sun size={14} aria-hidden="true" /> <span className="sidebar-nav-label">Mode Terang</span></>
           ) : (
-            <><Moon size={14} aria-hidden="true" /> Mode Gelap</>
+            <><Moon size={14} aria-hidden="true" /> <span className="sidebar-nav-label">Mode Gelap</span></>
           )}
           <div className="theme-toggle-track" aria-hidden="true">
             <div className="theme-toggle-thumb" />

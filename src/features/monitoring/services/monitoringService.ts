@@ -40,14 +40,20 @@ const PERIOD_HOURS: Record<TimePeriod, number> = { "24h": 24, "7d": 168, "30d": 
 
 // Request identik yang berjalan bersamaan (mis. 4 kartu dashboard tiap poll) berbagi satu fetch.
 // Hasilnya dipakai bersama, jadi jangan dimutasi (pakai toReversed, bukan reverse).
-const inflight = new Map<string, Promise<SensorLog[]>>();
+const inflight = new Map<string, Promise<SensorLog[] | null>>();
 
-function fetchLogs(params: Record<string, number>): Promise<SensorLog[]> {
+function fetchLogs(params: Record<string, number>): Promise<SensorLog[] | null> {
   const url = `/api/readings?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))}`;
   let req = inflight.get(url);
   if (!req) {
     req = fetch(url, { cache: "no-store" })
       .then((res) => {
+        // 503 not_configured = backend belum di-setup (mis. dev lokal tanpa env)
+        // → balas null agar caller memakai data mock, bukan error state.
+        if (res.status === 503) {
+          console.warn("/api/readings belum dikonfigurasi — memakai data mock.");
+          return null;
+        }
         if (!res.ok) throw new Error(`/api/readings ${res.status}`);
         return res.json();
       })
@@ -102,9 +108,23 @@ function simulateReading(base: MonitoringReading): MonitoringReading {
 }
 
 // Semua node + pembacaan terakhirnya; LIVE_NODES diganti data Supabase.
+// fetchLogs null = backend belum dikonfigurasi → seluruh node memakai mock "berdetak".
 async function snapshot() {
-  const [latest, prev] = await fetchLogs({ limit: 2 });
+  const logs = await fetchLogs({ limit: 2 });
   const now = new Date().toISOString();
+  if (!logs) {
+    return {
+      nodes: mockNodes.map((n): MonitoringNode => ({
+        ...n,
+        lastSeenAt: n.connectionStatus === "UNKNOWN" ? n.lastSeenAt : now,
+        connectionStatus: n.connectionStatus === "UNKNOWN" ? "UNKNOWN" : "ONLINE",
+      })),
+      readings: mockNodes
+        .filter((n) => n.connectionStatus !== "UNKNOWN")
+        .flatMap((n) => mockLatestReadings.filter((r) => r.nodeId === n.id).map(simulateReading)),
+    };
+  }
+  const [latest, prev] = logs;
   return {
     nodes: mockNodes.map((n): MonitoringNode =>
       !LIVE_NODES.has(n.id)
@@ -185,12 +205,15 @@ class MonitoringService implements MonitoringRepository {
   }
 
   async getTrendData(nodeId: string, period: TimePeriod): Promise<TrendDataPoint[]> {
-    if (!LIVE_NODES.has(nodeId)) {
-      const key = `${nodeId}-${period}`;
+    const key = `${nodeId}-${period}`;
+    const mock = () => {
       if (!mockTrends.has(key)) mockTrends.set(key, getMockTrendData(nodeId, period));
       return mockTrends.get(key)!;
-    }
-    return (await fetchLogs({ hours: PERIOD_HOURS[period] })).toReversed().map((l) => ({
+    };
+    if (!LIVE_NODES.has(nodeId)) return mock();
+    const logs = await fetchLogs({ hours: PERIOD_HOURS[period] });
+    if (!logs) return mock();
+    return logs.toReversed().map((l) => ({
       timestamp: l.created_at,
       waterLevel: l.tma,
       soilMoisture: l.moisture,
@@ -207,7 +230,8 @@ class MonitoringService implements MonitoringRepository {
 
   // ponytail: alert REAL_NODE dihitung ulang dari 30 hari pembacaan tiap request, "acknowledged" tidak disimpan; buat tabel alerts bila perlu riwayat/ack.
   async getAlerts(params?: { nodeId?: string; status?: string }): Promise<RiskAlert[]> {
-    const real = statusChanges((await fetchLogs({ hours: PERIOD_HOURS["30d"] })).toReversed());
+    const logs = await fetchLogs({ hours: PERIOD_HOURS["30d"] });
+    const real = logs ? statusChanges(logs.toReversed()) : [];
     let alerts = [...real, ...mockAlerts.filter((a) => a.nodeId !== REAL_NODE)];
     if (params?.nodeId) alerts = alerts.filter((a) => a.nodeId === params.nodeId);
     if (params?.status && params.status !== "ALL") alerts = alerts.filter((a) => a.status === params.status);
