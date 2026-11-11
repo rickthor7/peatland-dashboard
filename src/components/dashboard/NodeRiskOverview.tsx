@@ -126,14 +126,23 @@ export function NodeRiskOverview({ nodes, readings }: NodeRiskOverviewProps) {
                       alignItems: "center",
                       gap: "4px",
                       fontSize: "0.8125rem",
-                      color: node.connectionStatus === "ONLINE" ? "var(--status-aman)" : "var(--status-awas)",
+                      color:
+                        node.connectionStatus === "ONLINE"
+                          ? "var(--status-aman)"
+                          : node.connectionStatus === "UNKNOWN"
+                            ? "var(--text-tertiary)"
+                            : "var(--status-awas)",
                     }}
                       role="status"
                       aria-label={`Koneksi: ${node.connectionStatus}`}
                     >
-                      {node.connectionStatus === "ONLINE"
-                        ? <><Wifi size={12} aria-hidden="true" /> Online</>
-                        : <><WifiOff size={12} aria-hidden="true" /> Offline</>}
+                      {node.connectionStatus === "ONLINE" ? (
+                        <><Wifi size={12} aria-hidden="true" /> Online</>
+                      ) : node.connectionStatus === "UNKNOWN" ? (
+                        <><WifiOff size={12} aria-hidden="true" /> Tidak diketahui</>
+                      ) : (
+                        <><WifiOff size={12} aria-hidden="true" /> Offline</>
+                      )}
                     </span>
                   </td>
                   <td style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>

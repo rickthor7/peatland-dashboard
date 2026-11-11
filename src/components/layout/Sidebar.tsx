@@ -7,6 +7,7 @@ import {
   PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useDataMode } from "@/lib/useDataMode";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -22,6 +23,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const { isDummy, note } = useDataMode();
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/";
@@ -80,14 +82,23 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       {/* Footer */}
       <div className="sidebar-footer">
         {/* Connection indicator */}
-        <div className="connection-indicator" title="Status koneksi sistem">
+        <div
+          className="connection-indicator"
+          title={isDummy ? `Mode dummy aktif — ${note || "database tidak terhubung"}` : "Status koneksi sistem"}
+        >
           <span
-            className="connection-dot online"
+            className={`connection-dot ${isDummy ? "dummy" : "online"}`}
             role="status"
-            aria-label="Status koneksi sistem: terhubung"
+            aria-label={
+              isDummy
+                ? "Koneksi database terputus, mode simulasi aktif"
+                : "Status koneksi sistem: terhubung"
+            }
           />
           <Wifi size={12} aria-hidden="true" />
-          <span className="sidebar-nav-label">System connected</span>
+          <span className="sidebar-nav-label">
+            {isDummy ? "Mode Simulasi" : "System connected"}
+          </span>
         </div>
 
         {/* Theme toggle */}

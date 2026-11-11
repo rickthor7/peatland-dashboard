@@ -2345,6 +2345,46 @@ button { will-change: transform; }
   }
 }
 
+/* ── Mode dummy / simulasi ──────────────────────────────── */
+
+.dummy-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--status-siaga-text);
+  background: var(--status-siaga-bg);
+  border: 1px solid var(--status-siaga-border);
+  vertical-align: middle;
+  animation: dummy-badge-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes dummy-badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--status-siaga-glow); }
+  50%      { box-shadow: 0 0 0 4px transparent; }
+}
+
+.system-status-banner.is-dummy {
+  border-style: dashed;
+}
+
+.system-status-banner.is-dummy::after {
+  background: var(--status-siaga);
+  opacity: 0.1;
+}
+
+.connection-dot.dummy {
+  background: var(--status-siaga);
+  box-shadow: 0 0 0 3px var(--status-siaga-glow);
+  animation: dot-pulse 2.5s ease-in-out infinite;
+}
+
 /* ── Mobile: sidebar collapse tidak berlaku ───────────────── */
 
 @media (max-width: 768px) {

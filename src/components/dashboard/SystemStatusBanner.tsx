@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, AlertTriangle, AlertOctagon, Server, Clock } from "lucide-react";
+import { ShieldCheck, AlertTriangle, AlertOctagon, Server, Clock, Database, Radio } from "lucide-react";
 import type { SystemStatus } from "@/types/domain";
 import { formatTimestamp } from "@/lib/constants";
 
@@ -23,10 +23,11 @@ interface SystemStatusBannerProps {
 export function SystemStatusBanner({ status }: SystemStatusBannerProps) {
   const cls = status.overallStatus.toLowerCase();
   const Icon = ICONS[status.overallStatus];
+  const isDummy = status.dataMode === "dummy";
 
   return (
     <div
-      className={`system-status-banner ${cls}`}
+      className={`system-status-banner ${cls}${isDummy ? " is-dummy" : ""}`}
       role="region"
       aria-label="Status sistem keseluruhan"
       id="system-status-banner"
@@ -36,7 +37,15 @@ export function SystemStatusBanner({ status }: SystemStatusBannerProps) {
           <Icon size={26} strokeWidth={2} />
         </div>
         <div className="system-status-text">
-          <div className="system-status-eyebrow">Status Sistem</div>
+          <div className="system-status-eyebrow">
+            Status Sistem
+            {isDummy && (
+              <span className="dummy-mode-badge" role="status" aria-label="Mode simulasi aktif">
+                <Radio size={10} aria-hidden="true" />
+                Mode Simulasi
+              </span>
+            )}
+          </div>
           <div
             className={`system-status-value ${cls}`}
             role="status"
@@ -44,7 +53,11 @@ export function SystemStatusBanner({ status }: SystemStatusBannerProps) {
           >
             {status.overallStatus}
           </div>
-          <div className="system-status-desc">{DESCRIPTIONS[status.overallStatus]}</div>
+          <div className="system-status-desc">
+            {isDummy
+              ? "Koneksi database terputus — data dummy dibuat langsung di website (tanpa MQTT) dan status dipaksa aman."
+              : DESCRIPTIONS[status.overallStatus]}
+          </div>
         </div>
       </div>
 
@@ -62,8 +75,12 @@ export function SystemStatusBanner({ status }: SystemStatusBannerProps) {
           </div>
         </div>
         <div className="system-status-time" title="Waktu update terakhir">
-          <Clock size={10} style={{ display: "inline", marginRight: 4 }} aria-hidden="true" />
-          {formatTimestamp(status.lastUpdatedAt)}
+          {isDummy ? (
+            <Database size={10} style={{ display: "inline", marginRight: 4 }} aria-hidden="true" />
+          ) : (
+            <Clock size={10} style={{ display: "inline", marginRight: 4 }} aria-hidden="true" />
+          )}
+          {isDummy ? "Data dummy" : formatTimestamp(status.lastUpdatedAt)}
         </div>
       </div>
     </div>

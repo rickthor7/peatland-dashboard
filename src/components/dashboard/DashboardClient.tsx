@@ -208,7 +208,7 @@ export function DashboardClient() {
       {/* OpenStreetMap Sebaran Node — Sebangau, Kalimantan Tengah */}
       {!loadingMain && (
         <div data-aos="fade-up" data-aos-duration="450" style={{ marginBottom: "var(--space-5)" }}>
-          <NodeMap nodes={nodes} readings={allReadings} />
+          <NodeMap nodes={nodes} readings={allReadings} dataMode={systemStatus?.dataMode} />
         </div>
       )}
 

@@ -5,6 +5,14 @@ export type RiskStatus = "AMAN" | "SIAGA" | "AWAS";
 
 export type ConnectionStatus = "ONLINE" | "OFFLINE" | "UNKNOWN";
 
+/**
+ * Sumber data yang sedang dipakai:
+ * - "live"  : data telemetri asli dari database (sensor_logs)
+ * - "dummy" : mode cadangan saat koneksi database terputus — data dibuat
+ *             langsung di browser (tanpa MQTT) dan status dipaksa AMAN.
+ */
+export type DataMode = "live" | "dummy";
+
 export interface RiskIndex {
   value: number;
   status: RiskStatus;
@@ -66,6 +74,10 @@ export interface SystemStatus {
   onlineNodes: number;
   lastUpdatedAt: string;
   isConnected: boolean;
+  /** Sumber data aktif: telemetri asli atau dummy. */
+  dataMode: DataMode;
+  /** Alasan masuk mode dummy (mis. "HTTP 500" / "network error"). */
+  modeNote?: string;
 }
 
 export interface TrendDataPoint {

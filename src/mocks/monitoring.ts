@@ -8,6 +8,7 @@ import type {
   SystemStatus,
   TrendDataPoint,
 } from "@/types/domain";
+import { computeRisk } from "@/lib/risk";
 
 // ─── Nodes ───────────────────────────────────────────────────────────────────
 // Lokasi dummy: lahan gambut Sebangau, Palangka Raya, Kalimantan Tengah.
@@ -95,6 +96,7 @@ export const mockSystemStatus: SystemStatus = {
   onlineNodes: 3,
   lastUpdatedAt: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
   isConnected: true,
+  dataMode: "live",
 };
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
@@ -192,3 +194,66 @@ export function getMockTrendData(nodeId: string, period: "24h" | "7d" | "30d"): 
 export function getMockGlobalTrendData(period: "24h" | "7d" | "30d"): TrendDataPoint[] {
   return getMockTrendData("NODE-001", period);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODE DUMMY — data dibuat langsung di browser (tanpa MQTT, tanpa database)
+// Dipakai otomatis saat koneksi database terputus. Semua nilai dijaga pada
+// rentang aman sehingga status yang ditampilkan tetap AMAN (tidak memicu
+// peringatan palsu dari data rekaan).
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Baseline aman: lahan gambut basah, tanah lembap, suhu sedang. */
+export const DUMMY_BASELINE = {
+  tma: -22,
+  moisture: 70,
+  temperature: 30,
+} as const;
+
+/** Osilasi halus berbasis waktu — data tetap hidup tiap poll. */
+function wave(hours: number, periodHours: number, amp: number, phase = 0): number {
+  return Math.sin((hours / periodHours) * Math.PI * 2 + phase) * amp;
+}
+
+const round1 = (v: number) => Math.round(v * 10) / 10;
+
+/** Nilai sensor dummy saat ini (aman). */
+export function getDummySensorValues(now = Date.now()) {
+  const h = now / 3_600_000;
+  const tma = DUMMY_BASELINE.tma + wave(h, 6, 5) + wave(h, 17, 1.5);
+  const moisture = DUMMY_BASELINE.moisture + wave(h, 9, 6) + wave(h, 23, 2);
+  const temperature = DUMMY_BASELINE.temperature + wave(h, 7, 3) + wave(h, 19, 1);
+  return {
+    tma: round1(Math.max(-30, Math.min(-16, tma))),
+    moisture: round1(Math.max(62, Math.min(78, moisture))),
+    temperature: round1(Math.max(27, Math.min(34, temperature))),
+  };
+}
+
+/** Deret tren dummy yang konsisten dengan nilai saat ini. */
+export function getDummyTrendData(period: "24h" | "7d" | "30d"): TrendDataPoint[] {
+  const hours = period === "24h" ? 24 : period === "7d" ? 168 : 720;
+  const points = 48;
+  const step = (hours * 3_600_000) / points;
+  const now = Date.now();
+  const out: TrendDataPoint[] = [];
+
+  for (let i = points; i >= 0; i--) {
+    const t = now - i * step;
+    const h = t / 3_600_000;
+    const tma = DUMMY_BASELINE.tma + wave(h, 6, 5) + wave(h, 17, 1.5);
+    const moisture = DUMMY_BASELINE.moisture + wave(h, 9, 6) + wave(h, 23, 2);
+    const temperature = DUMMY_BASELINE.temperature + wave(h, 7, 3) + wave(h, 19, 1);
+    const risk = computeRisk(tma, moisture, temperature);
+
+    out.push({
+      timestamp: new Date(t).toISOString(),
+      waterLevel: round1(tma),
+      soilMoisture: round1(moisture),
+      temperature: round1(temperature),
+      tma: round1(tma),
+      riskIndex: risk.index,
+    });
+  }
+  return out;
+}
+

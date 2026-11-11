@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, MapPin, Radio, Wifi, WifiOff, Layers } from "lucide-react";
-import type { MonitoringNode, MonitoringReading, RiskStatus } from "@/types/domain";
+import type { MonitoringNode, MonitoringReading, RiskStatus, DataMode } from "@/types/domain";
 import { StatusBadge } from "@/components/status/StatusBadge";
 import { formatRelativeTime, formatTimestamp } from "@/lib/constants";
 import "leaflet/dist/leaflet.css";
@@ -11,6 +11,8 @@ import "leaflet/dist/leaflet.css";
 interface NodeMapProps {
   nodes: MonitoringNode[];
   readings: MonitoringReading[];
+  /** Sumber data aktif: live (Supabase) atau dummy (database terputus). */
+  dataMode?: DataMode;
 }
 
 const STATUS_COLORS: Record<RiskStatus, string> = {
@@ -20,8 +22,8 @@ const STATUS_COLORS: Record<RiskStatus, string> = {
 };
 const NO_DATA_COLOR = "#64748b";
 
-// Node yang datanya berasal dari Supabase (lihat LIVE_NODES di monitoringService)
-const LIVE_NODE_IDS = new Set(["NODE-001", "NODE-004"]);
+// Semua node membaca baris sensor_logs yang sama saat mode live.
+const LIVE_NODE_IDS = new Set(["NODE-001", "NODE-002", "NODE-003", "NODE-004"]);
 
 // Fallback pusat peta: lahan gambut Sebangau, Palangka Raya, Kalimantan Tengah
 const DEFAULT_CENTER: [number, number] = [-2.3175, 113.9045];
@@ -39,8 +41,7 @@ function markerHtml(node: MonitoringNode, color: string, selected: boolean) {
     </div>`;
 }
 
-function popupHtml(node: MonitoringNode, reading: MonitoringReading | undefined) {
-  const isLive = LIVE_NODE_IDS.has(node.id);
+function popupHtml(node: MonitoringNode, reading: MonitoringReading | undefined, isLive: boolean) {
   const online = node.connectionStatus === "ONLINE";
   const sourceBadge = isLive
     ? `<span class="node-popup__src is-live"><i></i>LIVE · Supabase</span>`
@@ -101,7 +102,7 @@ function popupHtml(node: MonitoringNode, reading: MonitoringReading | undefined)
     </div>`;
 }
 
-export function NodeMap({ nodes, readings }: NodeMapProps) {
+export function NodeMap({ nodes, readings, dataMode = "live" }: NodeMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<LeafletAny>(null);
   const leafletRef = useRef<LeafletAny>(null);
@@ -114,6 +115,9 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
   const nodesRef = useRef(nodes);
   const readingsRef = useRef(readings);
   const selectedRef = useRef(selectedNodeId);
+  const modeRef = useRef(dataMode);
+
+  const isDummy = dataMode === "dummy";
 
   const getReading = (nodeId: string) => readings.find((r) => r.nodeId === nodeId);
 
@@ -145,7 +149,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
       let entry = markersRef.current.get(node.id);
       if (!entry) {
         const marker = L.marker([lat, lng], { icon: icon(), riseOnHover: true }).addTo(map);
-        marker.bindPopup(popupHtml(node, reading), {
+        marker.bindPopup(popupHtml(node, reading, modeRef.current === "live"), {
           className: "node-popup-wrap",
           maxWidth: 300,
           minWidth: 260,
@@ -168,7 +172,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
       }
       // Hanya render ulang popup bila ada pembacaan baru (memicu animasi "flash" di nilai)
       if (entry.readingId !== reading?.id) {
-        entry.marker.setPopupContent(popupHtml(node, reading));
+        entry.marker.setPopupContent(popupHtml(node, reading, modeRef.current === "live"));
         entry.readingId = reading?.id;
       }
     }
@@ -241,12 +245,13 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
     nodesRef.current = nodes;
     readingsRef.current = readings;
     selectedRef.current = selectedNodeId;
+    modeRef.current = dataMode;
     syncMarkers();
-  }, [nodes, readings, selectedNodeId]);
+  }, [nodes, readings, selectedNodeId, dataMode]);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? nodes[0];
   const selectedReading = selectedNode ? getReading(selectedNode.id) : null;
-  const isSelectedLive = selectedNode ? LIVE_NODE_IDS.has(selectedNode.id) : false;
+  const isSelectedLive = selectedNode ? !isDummy && LIVE_NODE_IDS.has(selectedNode.id) : false;
 
   const handleSelectNode = (node: MonitoringNode) => {
     setSelectedNodeId(node.id);
@@ -415,7 +420,7 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
                   }}
                 >
                   <Radio size={11} className="pulse-live" />
-                  {isSelectedLive ? "Live Data dari Supabase" : "Data Simulasi (dummy)"}
+                  {isSelectedLive ? "Live Data dari Supabase" : "Data Dummy (dibuat di website)"}
                 </div>
 
                 {/* Indikator Telemetri Terbaru */}
@@ -462,7 +467,12 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
                         style={{
                           fontSize: "0.85rem",
                           fontWeight: 600,
-                          color: selectedNode.connectionStatus === "ONLINE" ? "var(--status-aman)" : "var(--status-awas)",
+                          color:
+                            selectedNode.connectionStatus === "ONLINE"
+                              ? "var(--status-aman)"
+                              : selectedNode.connectionStatus === "UNKNOWN"
+                                ? "var(--text-tertiary)"
+                                : "var(--status-awas)",
                           display: "flex",
                           alignItems: "center",
                           gap: "4px",
@@ -472,6 +482,10 @@ export function NodeMap({ nodes, readings }: NodeMapProps) {
                         {selectedNode.connectionStatus === "ONLINE" ? (
                           <>
                             <Wifi size={13} /> Online
+                          </>
+                        ) : selectedNode.connectionStatus === "UNKNOWN" ? (
+                          <>
+                            <WifiOff size={13} /> Tidak diketahui
                           </>
                         ) : (
                           <>

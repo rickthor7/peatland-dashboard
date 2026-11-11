@@ -117,11 +117,22 @@ export function NodeDetailClient({ nodeId }: NodeDetailClientProps) {
                 className="node-detail-meta-item"
                 role="status"
                 aria-label={`Status koneksi: ${node.connectionStatus}`}
-                style={{ color: node.connectionStatus === "ONLINE" ? "var(--status-aman)" : "var(--status-awas)" }}
+                style={{
+                  color:
+                    node.connectionStatus === "ONLINE"
+                      ? "var(--status-aman)"
+                      : node.connectionStatus === "UNKNOWN"
+                        ? "var(--text-tertiary)"
+                        : "var(--status-awas)",
+                }}
               >
-                {node.connectionStatus === "ONLINE"
-                  ? <><Wifi size={13} aria-hidden="true" /> Online</>
-                  : <><WifiOff size={13} aria-hidden="true" /> Offline</>}
+                {node.connectionStatus === "ONLINE" ? (
+                  <><Wifi size={13} aria-hidden="true" /> Online</>
+                ) : node.connectionStatus === "UNKNOWN" ? (
+                  <><WifiOff size={13} aria-hidden="true" /> Tidak diketahui</>
+                ) : (
+                  <><WifiOff size={13} aria-hidden="true" /> Offline</>
+                )}
               </div>
               {node.lastSeenAt && (
                 <div className="node-detail-meta-item">

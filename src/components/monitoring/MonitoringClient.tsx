@@ -267,15 +267,24 @@ export function MonitoringClient() {
                 <div className="node-card-footer">
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.75rem" }}>
                     <span style={{
-                      color: node.connectionStatus === "ONLINE" ? "var(--status-aman)" : "var(--status-awas)",
+                      color:
+                        node.connectionStatus === "ONLINE"
+                          ? "var(--status-aman)"
+                          : node.connectionStatus === "UNKNOWN"
+                            ? "var(--text-tertiary)"
+                            : "var(--status-awas)",
                       display: "flex", alignItems: "center", gap: "4px",
                     }}
                       role="status"
                       aria-label={`Koneksi: ${node.connectionStatus}`}
                     >
-                      {node.connectionStatus === "ONLINE"
-                        ? <><Wifi size={11} aria-hidden="true" /> Online</>
-                        : <><WifiOff size={11} aria-hidden="true" /> Offline</>}
+                      {node.connectionStatus === "ONLINE" ? (
+                        <><Wifi size={11} aria-hidden="true" /> Online</>
+                      ) : node.connectionStatus === "UNKNOWN" ? (
+                        <><WifiOff size={11} aria-hidden="true" /> Tidak diketahui</>
+                      ) : (
+                        <><WifiOff size={11} aria-hidden="true" /> Offline</>
+                      )}
                     </span>
                     {node.lastSeenAt && (
                       <span style={{ color: "var(--text-tertiary)" }}>
