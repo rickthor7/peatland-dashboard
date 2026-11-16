@@ -29,6 +29,230 @@ Data tersebut diproses oleh backend dengan algoritma pemodelan prediktif menghas
 - 🔴 **AWAS** (IKG ≥ 70)
 
 ---
+---
+
+## 🔌 Panduan Hardware, Modul ESP32, dan Instalasi Sensor IoT
+
+Bagian ini menjelaskan komponen perangkat keras yang digunakan dalam sistem pemantauan hidrologi lahan gambut, fungsi setiap modul, konfigurasi pin, serta prosedur pemasangan sensor.
+
+### 1. Komponen Hardware
+
+Sistem menggunakan ESP32 sebagai mikrokontroler utama untuk membaca data sensor, melakukan pemrosesan awal, dan mengirimkan data monitoring ke server melalui jaringan Wi-Fi.
+
+| Komponen | Fungsi |
+|---|---|
+| ESP32 DevKit | Mikrokontroler utama dan komunikasi Wi-Fi |
+| HC-SR04 Ultrasonic | Mengukur Tinggi Muka Air (TMA) |
+| Capacitive Soil Moisture Sensor | Mengukur kelembaban tanah |
+| MAX6675 + Thermocouple Type-K | Mengukur temperatur lingkungan atau tanah |
+| OLED Display | Menampilkan informasi pembacaan sensor |
+| DC-DC Buck Converter | Menurunkan dan menstabilkan tegangan |
+| Battery | Sumber daya utama perangkat IoT |
+
+### 2. ESP32 DevKit
+
+ESP32 merupakan pusat kendali seluruh perangkat IoT. Modul ini memiliki kemampuan komunikasi Wi-Fi yang digunakan untuk mengirimkan data sensor menuju MQTT Broker dan backend sistem.
+
+**Fungsi utama ESP32:**
+- Membaca data dari sensor ultrasonik.
+- Membaca nilai analog dari sensor kelembaban tanah.
+- Membaca temperatur melalui modul MAX6675.
+- Menampilkan informasi sensor melalui OLED.
+- Mengirimkan data monitoring menggunakan protokol MQTT.
+- Menghubungkan perangkat dengan dashboard monitoring berbasis web.
+
+**Koneksi utama ESP32:**
+
+ESP32 menggunakan beberapa jenis komunikasi, yaitu GPIO Digital, ADC, I2C, dan SPI.
+
+### 3. HC-SR04 Ultrasonic Sensor (Water Level Monitoring)
+
+HC-SR04 digunakan untuk mengukur jarak antara sensor dan permukaan air. Hasil pengukuran digunakan untuk memperoleh nilai Tinggi Muka Air (TMA) gambut.
+
+**Prinsip kerja:**
+
+1. Pin TRIG mengirimkan gelombang ultrasonik.
+2. Gelombang dipantulkan oleh permukaan air.
+3. Pin ECHO menerima pantulan gelombang.
+4. ESP32 menghitung waktu perjalanan gelombang.
+5. Jarak dihitung menggunakan kecepatan suara.
+
+Rumus pengukuran:
+
+`Distance (cm) = (Duration × 0.0343) / 2`
+
+Nilai TMA dihitung berdasarkan posisi pemasangan sensor dan jarak hasil pengukuran:
+
+`TMA = Tinggi Acuan - Distance`
+
+**Konfigurasi pin:**
+
+| HC-SR04 | ESP32 |
+|---|---|
+| VCC | VIN / 5V |
+| GND | GND |
+| TRIG | GPIO 5 |
+| ECHO | GPIO 18 melalui voltage divider |
+
+**Cara pemasangan:**
+
+1. Pasang sensor pada bagian atas sumur pantau atau tabung pengamatan muka air.
+2. Arahkan kedua transduser sensor ke permukaan air.
+3. Pastikan sensor berada dalam posisi stabil dan tidak mudah bergeser.
+4. Pastikan tidak terdapat penghalang antara sensor dan permukaan air.
+5. Atur tinggi pemasangan sebagai titik acuan pengukuran.
+6. Lindungi rangkaian elektronik dari hujan dan kelembaban berlebih.
+
+**Catatan:** Pin ECHO HC-SR04 menghasilkan sinyal 5V, sedangkan GPIO ESP32 bekerja pada logika 3.3V. Gunakan voltage divider sebelum menghubungkannya ke ESP32 agar GPIO tidak rusak.
+
+### 4. Capacitive Soil Moisture Sensor
+
+Sensor capacitive soil moisture digunakan untuk mengukur tingkat kelembaban tanah gambut.
+
+Berbeda dengan sensor resistif, sensor kapasitif memanfaatkan perubahan kapasitansi untuk mendeteksi kondisi kelembaban tanah.
+
+**Konfigurasi pin:**
+
+| Soil Moisture | ESP32 |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| AOUT | GPIO 34 (ADC) |
+
+**Cara pemasangan:**
+
+1. Tentukan kedalaman tanah yang akan dipantau.
+2. Tancapkan bagian probe sensor ke dalam tanah gambut.
+3. Pastikan bagian penginderaan sensor tertanam dengan baik.
+4. Jangan menenggelamkan bagian rangkaian elektronik atau konektor.
+5. Pastikan posisi sensor tidak mudah berubah akibat pergerakan tanah.
+6. Lakukan kalibrasi menggunakan kondisi tanah kering dan basah.
+
+**Kalibrasi sensor:**
+
+Nilai ADC yang diperoleh ESP32 perlu dikonversi menjadi persentase kelembaban berdasarkan hasil kalibrasi.
+
+Contoh rumus:
+
+`Moisture (%) = ((Dry Value - ADC Value) / (Dry Value - Wet Value)) × 100`
+
+Nilai kalibrasi perlu disesuaikan dengan karakteristik sensor dan jenis tanah gambut yang digunakan.
+
+### 5. MAX6675 dan Thermocouple Type-K
+
+Modul MAX6675 digunakan sebagai antarmuka pembacaan temperatur menggunakan sensor termokopel Type-K.
+
+Komponen ini dapat digunakan sebagai parameter tambahan untuk memantau perubahan temperatur pada lingkungan atau tanah gambut.
+
+**Konfigurasi pin:**
+
+| MAX6675 | ESP32 |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| SCK | GPIO 14 |
+| CS | GPIO 27 |
+| SO | GPIO 26 |
+
+**Cara pemasangan:**
+
+1. Hubungkan kabel termokopel Type-K ke terminal input modul MAX6675.
+2. Pasang ujung probe pada lokasi pengukuran temperatur.
+3. Pastikan ujung probe berada pada titik pengukuran yang diinginkan.
+4. Hubungkan modul MAX6675 ke ESP32 sesuai konfigurasi pin.
+5. Baca temperatur melalui komunikasi SPI.
+
+**Catatan:** MAX6675 merupakan sensor tambahan pada konfigurasi ini. Penggunaannya sebagai bagian dari perhitungan IKG harus disesuaikan dengan formulasi model penelitian.
+
+### 6. OLED Display
+
+OLED digunakan sebagai antarmuka lokal untuk menampilkan hasil pembacaan sensor tanpa harus membuka dashboard web.
+
+Informasi yang dapat ditampilkan:
+- Tinggi Muka Air (TMA).
+- Kelembaban tanah.
+- Temperatur.
+- Status koneksi perangkat.
+- Status kerentanan lahan gambut.
+
+**Konfigurasi pin I2C:**
+
+| OLED | ESP32 |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| SDA | GPIO 21 |
+| SCL | GPIO 22 |
+
+OLED menggunakan komunikasi I2C sehingga hanya membutuhkan dua pin komunikasi utama.
+
+### 7. Battery dan DC-DC Buck Converter
+
+Battery digunakan sebagai sumber energi utama perangkat IoT. Tegangan dari baterai perlu disesuaikan sebelum digunakan oleh ESP32 dan sensor.
+
+DC-DC buck converter berfungsi menurunkan tegangan baterai menjadi tegangan yang sesuai dengan kebutuhan rangkaian.
+
+**Prosedur pemasangan:**
+
+1. Hubungkan terminal positif baterai ke input positif buck converter.
+2. Hubungkan terminal negatif baterai ke input negatif buck converter.
+3. Atur tegangan output menggunakan multimeter sebelum menghubungkan perangkat.
+4. Hubungkan output regulator ke jalur suplai perangkat sesuai kebutuhan tegangan.
+5. Pastikan seluruh rangkaian menggunakan ground yang sama.
+
+**Catatan keselamatan:**
+- Jangan menghubungkan baterai langsung ke pin 3.3V ESP32 tanpa regulator yang sesuai.
+- Periksa polaritas positif dan negatif sebelum mengaktifkan rangkaian.
+- Gunakan rangkaian proteksi baterai dan charger yang sesuai dengan jenis baterai.
+- Pastikan tegangan output buck converter sesuai dengan spesifikasi setiap modul.
+
+### 8. Tabel Keseluruhan Konfigurasi Pin ESP32
+
+Berikut merupakan rekomendasi konfigurasi pin untuk ESP32 DevKit berdasarkan jenis sensor dan modul yang digunakan.
+
+| Perangkat | Pin ESP32 | Jenis Komunikasi |
+|---|---|---|
+| HC-SR04 TRIG | GPIO 5 | Digital Output |
+| HC-SR04 ECHO | GPIO 18 | Digital Input (3.3V melalui divider) |
+| Soil Moisture AOUT | GPIO 34 | Analog Input |
+| MAX6675 SCK | GPIO 14 | SPI Clock |
+| MAX6675 CS | GPIO 27 | SPI Chip Select |
+| MAX6675 SO | GPIO 26 | SPI Data |
+| OLED SDA | GPIO 21 | I2C Data |
+| OLED SCL | GPIO 22 | I2C Clock |
+
+**Penting:** Tabel tersebut merupakan rekomendasi pemetaan pin untuk ESP32 DevKit standar, bukan pembacaan pin pasti dari ilustrasi rangkaian. Pastikan kembali kesesuaian pin dengan board dan program firmware yang digunakan.
+
+### 9. Prosedur Instalasi Perangkat di Lapangan
+
+Pemasangan perangkat IoT dilakukan melalui beberapa tahapan berikut:
+
+1. **Persiapan perangkat:** Siapkan ESP32, sensor ultrasonik, sensor kelembaban tanah, modul pendukung, kabel jumper, baterai, dan pelindung rangkaian.
+2. **Perakitan elektronik:** Hubungkan seluruh sensor ke ESP32 sesuai tabel konfigurasi pin.
+3. **Pengujian sensor:** Lakukan pengujian masing-masing sensor menggunakan Arduino IDE.
+4. **Kalibrasi:** Sesuaikan pembacaan sensor dengan kondisi aktual di lapangan.
+5. **Instalasi sensor:** Pasang sensor TMA pada sumur pantau dan sensor kelembaban pada kedalaman tanah yang ditentukan.
+6. **Pengujian komunikasi:** Pastikan ESP32 dapat terhubung ke Wi-Fi dan mengirimkan data melalui MQTT.
+7. **Monitoring:** Periksa data yang diterima backend dan pastikan visualisasi dashboard berjalan dengan baik.
+
+### 10. Alur Kerja Sistem Hardware
+
+Secara keseluruhan, proses kerja perangkat IoT adalah sebagai berikut:
+
+1. Sensor melakukan pembacaan kondisi hidrologi lahan gambut.
+2. ESP32 menerima dan memproses data hasil pembacaan sensor.
+3. Data dikirimkan menuju MQTT Broker melalui jaringan Wi-Fi.
+4. Backend melakukan pengolahan data dan perhitungan Indeks Kerentanan Gambut (IKG).
+5. Data disimpan pada Supabase PostgreSQL.
+6. Dashboard menampilkan hasil monitoring dan status peringatan dini secara real-time.
+
+Dengan integrasi tersebut, perangkat IoT berfungsi sebagai lapisan akuisisi data lapangan yang mendukung sistem pemantauan dan peringatan dini kebakaran lahan gambut.
+
+---
+
+
+
+---
 
 ## ✨ Fitur Utama
 
